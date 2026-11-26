@@ -50,6 +50,9 @@ oder bei einer neuen Basis-Version den Tag in `pubspec.yaml` erhöhen,
 Artefakt am Lauf (Actions → Lauf → Artifacts). Bei einem Tag `v*` (gleich der
 `version` in `pubspec.yaml`, z. B. `v1.0.0`) entsteht zusätzlich ein
 GitHub-Release mit der APK.
+Mit dem Rosenweg-Signierschlüssel geht die APK dabei auch an
+**www.rosenweg4303.ch/apps** (Anmeldung per GitHub-OIDC, kein Geheimnis; Weg in
+Rosenweg/Website, `pbx/README.md`). Ein Debug-Bau bleibt nur im GitHub-Release.
 
 Flutter, JDK und Android-Kommandozeilenwerkzeuge kommen als feste Versionen
 mit Prüfsumme in einen Cache im Benutzerverzeichnis des Runners.
