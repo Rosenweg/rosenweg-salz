@@ -17,7 +17,7 @@ die Reichweite gerechnet und die Mail zum Nachbestellen an die Technik verschick
 - `lib/salz/`: Datenmodell und API (`SalzApi` über `RosenwegApi` aus rosenweg_basis)
 - `lib/oberflaeche/`: Startseite, Buchungsablauf, Scanner (mobile_scanner)
 - Anmeldung, API-Client, Thema und Rahmen liefert **rosenweg_basis**
-  (`../rosenweg-basis`, path-Abhängigkeit, bis das Repo auf GitHub liegt).
+  (privates Repo Rosenweg/rosenweg-basis, git-Abhängigkeit mit festem Tag in `pubspec.yaml`).
   Die App meldet sich mit dem Authentik-Client `rosenweg-apps` an; die Rücksprungadresse ist
   `ch.rosenweg4303.salz:/anmeldung` und muss in Authentik als „Strikt“ eingetragen sein.
 - Logo: aus dem Logo-Baukasten der Basis (Turm, Weg und Rose, dazu die Plakette mit dem
@@ -25,10 +25,41 @@ die Reichweite gerechnet und die Mail zum Nachbestellen an die Technik verschick
 
 ## Entwickeln
 
+Gegen die Basis im Nachbarordner `../rosenweg-basis` statt gegen den Tag
+entwickeln: `pubspec_overrides.yaml` anlegen (steht in `.gitignore`):
+
+    dependency_overrides:
+      rosenweg_basis:
+        path: ../rosenweg-basis
+
+Dann schreibt `flutter pub get` den path-Eintrag in `pubspec.lock`. So nicht
+einchecken (die CI bricht dann ab): vor dem Commit `git checkout pubspec.lock`,
+oder bei einer neuen Basis-Version den Tag in `pubspec.yaml` erhöhen,
+`pubspec_overrides.yaml` kurz wegnehmen und `flutter pub get` laufen lassen.
+
     flutter analyze
     flutter test
     flutter test test/bildschirmfotos_test.dart --dart-define=BILDSCHIRMFOTOS=$PWD/build/bildschirmfotos
     flutter build apk --debug
+
+## Bau auf GitHub
+
+`.github/workflows/android.yml` läuft auf dem eigenen Runner (Gruppe
+`rosenweg-privat`, wie rosenweg-vm): bei jedem Push auf `main` und jedem PR
+`flutter analyze`, `flutter test` und eine Release-APK. Die APK hängt als
+Artefakt am Lauf (Actions → Lauf → Artifacts). Bei einem Tag `v*` (gleich der
+`version` in `pubspec.yaml`, z. B. `v1.0.0`) entsteht zusätzlich ein
+GitHub-Release mit der APK.
+
+Flutter, JDK und Android-Kommandozeilenwerkzeuge kommen als feste Versionen
+mit Prüfsumme in einen Cache im Benutzerverzeichnis des Runners.
+
+Secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Wozu |
+|---|---|
+| `BASIS_TOKEN` | Fein granulierter Token, nur Rosenweg/rosenweg-basis, *Contents: Read-only* — damit `pub get` die private Basis holen kann. Alternative: `BASIS_DEPLOY_KEY` (privater SSH-Schlüssel eines Deploy-Keys auf rosenweg-basis, sobald Deploy-Keys in der Organisation erlaubt sind). |
+| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Rosenweg-Signierschlüssel (optional). Fehlen sie, ist die APK mit dem Debug-Schlüssel signiert und heisst `…-debug-signiert.apk`. |
 
 ## Lizenz
 
