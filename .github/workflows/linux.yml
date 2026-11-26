@@ -109,22 +109,54 @@ jobs:
       contents: write
       id-token: write    # OIDC-Token fuer /apps (kein Geheimnis)
     steps:
+      # Selbst gehosteter Runner: der Arbeitsordner bleibt zwischen Jobs liegen.
+      # Am 26.11.2026 (v1.0.0) lag noch das .deb des Linux-Laufs in ausgabe/,
+      # und der Android-Job lud es mit hoch. Darum vorher leeren.
+      - name: ausgabe/ leeren
+        run: rm -rf ausgabe
+
       - uses: actions/download-artifact@v4
         with:
           name: rosenweg-salz-linux
           path: ausgabe
 
+      # Ohne gh: auf dem selbst gehosteten Runner gibt es kein gh (v1.0.0 scheiterte
+      # daran, 'gh: command not found'). Derselbe Weg wie android.yml.
       - name: Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          # die Laeufe der anderen Plattformen legen dasselbe Release womoeglich gleichzeitig an
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "Rosenweg Salz $GITHUB_REF_NAME" --notes "Android, Linux (Debian 13), macOS, Windows" \
-            || gh release view "$GITHUB_REF_NAME" >/dev/null
-          gh release upload "$GITHUB_REF_NAME" ausgabe/*.deb --clobber
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const tag = context.ref.replace('refs/tags/', '');
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            // Die Laeufe der anderen Plattformen legen dasselbe Release womoeglich zuerst an.
+            const finden = () => github.rest.repos.getReleaseByTag({ ...repo, tag });
+            let rel;
+            try {
+              rel = await finden();
+            } catch (e) {
+              try {
+                rel = await github.rest.repos.createRelease({
+                  ...repo, tag_name: tag, name: `Rosenweg Salz ${tag}`,
+                  body: 'Android, Linux (Debian 13), macOS, Windows',
+                });
+              } catch (e2) {
+                rel = await finden();
+              }
+            }
+            const dateien = fs.readdirSync('ausgabe').filter((f) => f.endsWith('.deb'));
+            if (!dateien.length) throw new Error('Kein .deb in ausgabe/');
+            for (const f of dateien) {
+              // wie 'gh release upload --clobber': gleichnamige Datei vorher entfernen
+              const alt = rel.data.assets.find((a) => a.name === f);
+              if (alt) await github.rest.repos.deleteReleaseAsset({ ...repo, asset_id: alt.id });
+              await github.rest.repos.uploadReleaseAsset({
+                ...repo, release_id: rel.data.id, name: f,
+                data: fs.readFileSync(path.join('ausgabe', f)),
+              });
+              core.info(`Hochgeladen: ${f}`);
+            }
 
       # Weg: Rosenweg/Website, pbx/README.md, "Seite /apps und App-Releases".
       - uses: Rosenweg/Website/.github/actions/apps-release@main
