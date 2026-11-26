@@ -1,0 +1,181 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import 'package:flutter/material.dart';
+
+import 'package:rosenweg_basis/rosenweg_basis.dart';
+
+import '../salz/modell.dart';
+import '../salz_app.dart';
+import 'buchen_ablauf.dart';
+import 'thema.dart';
+import 'umgebung.dart';
+
+/// Startseite: zwei grosse Knoepfe, darunter jedes Lager mit Bestand und Reichweite.
+class StartSeite extends StatefulWidget {
+  const StartSeite({super.key, required this.umgebung, required this.ich});
+  final Umgebung umgebung;
+  final Ich ich;
+  @override
+  State<StartSeite> createState() => _StartSeiteState();
+}
+
+class _StartSeiteState extends State<StartSeite> {
+  List<Lager>? _lager;
+  String? _fehler;
+  bool _laedt = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _laden();
+  }
+
+  Future<void> _laden() async {
+    if (_laedt) return;
+    setState(() => _laedt = true);
+    try {
+      final l = await widget.umgebung.quelle.lager();
+      if (mounted) setState(() { _lager = l; _fehler = null; });
+    } on NichtAngemeldet {
+      // Die Sitzung wechselt selbst zum Anmeldeschirm.
+    } catch (e) {
+      if (mounted) setState(() => _fehler = e.toString());
+    } finally {
+      if (mounted) setState(() => _laedt = false);
+    }
+  }
+
+  Future<void> _buchen(Art art) async {
+    final lager = _lager;
+    if (lager == null || lager.isEmpty) return;
+    final ergebnis = await Navigator.of(context).push<AblaufErgebnis>(
+      MaterialPageRoute(
+        // Das Salz-Thema (grosse Knoepfe) auch auf der neuen Seite.
+        builder: (_) => Theme(data: Theme.of(context), child: BuchenAblauf(umgebung: widget.umgebung, art: art, lager: lager)),
+      ),
+    );
+    if (!mounted) return;
+    if (ergebnis == null) return _laden();
+    final b = ergebnis.buchung;
+    setState(() => _lager = [for (final l in _lager!) l.id == b.lager.id ? b.lager : l]);
+    final bote = ScaffoldMessenger.of(context);
+    bote.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8),
+      content: Text('${ergebnis.text} – ${b.lager.name}: jetzt ${b.lager.saeckeText}', style: const TextStyle(fontSize: 16)),
+      action: SnackBarAction(label: 'Rückgängig', onPressed: () => _rueckgaengig(b)),
+    ));
+  }
+
+  Future<void> _rueckgaengig(Buchung b) async {
+    final bote = ScaffoldMessenger.of(context);
+    try {
+      final l = await widget.umgebung.quelle.rueckgaengig(b.id);
+      if (!mounted) return;
+      setState(() => _lager = [for (final x in _lager!) x.id == l.id ? l : x]);
+      bote.showSnackBar(SnackBar(content: Text('Rückgängig gemacht – ${l.name}: ${l.saeckeText}')));
+    } catch (e) {
+      bote.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _abmelden() async {
+    if (await frage(context, 'Abmelden?', 'Danach braucht es wieder die Anmeldung mit dem Rosenweg-Konto.', ja: 'Abmelden')) {
+      await widget.umgebung.abmelden();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lager = _lager;
+    final bereit = lager != null && lager.isNotEmpty;
+    return Scaffold(
+      appBar: AppBar(
+        leading: Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/logo/rosenweg-salz-klein.png')),
+        title: const Text('Rosenweg Salz'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (w) => w == 'ab' ? _abmelden() : zeigeUeber(context, salzApp),
+            itemBuilder: (_) => [
+              PopupMenuItem(enabled: false, child: Text(widget.ich.name ?? 'Angemeldet')),
+              if (widget.umgebung.darfAbmelden) const PopupMenuItem(value: 'ab', child: Text('Abmelden')),
+              const PopupMenuItem(value: 'ueber', child: Text('Über Rosenweg Salz')),
+            ],
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _laden,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            FilledButton.icon(
+              key: const Key('knopf-anlieferung'),
+              onPressed: bereit ? () => _buchen(Art.anlieferung) : null,
+              icon: const Icon(Icons.local_shipping_outlined, size: 30),
+              label: const Text('Anlieferung'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('knopf-eingefuellt'),
+              style: FilledButton.styleFrom(backgroundColor: RosenwegFarben.dunkelrot, foregroundColor: Colors.white),
+              onPressed: bereit ? () => _buchen(Art.eingefuellt) : null,
+              icon: const Icon(Icons.move_to_inbox_outlined, size: 30),
+              label: const Text('Sack eingefüllt'),
+            ),
+            const SizedBox(height: 24),
+            if (_fehler != null)
+              Card(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: ListTile(
+                  leading: const Icon(Icons.cloud_off),
+                  title: Text(_fehler!),
+                  trailing: TextButton(onPressed: _laden, child: const Text('Nochmals')),
+                ),
+              ),
+            if (lager == null && _fehler == null)
+              const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
+            for (final l in lager ?? const <Lager>[]) LagerKarte(lager: l),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LagerKarte extends StatelessWidget {
+  const LagerKarte({super.key, required this.lager});
+  final Lager lager;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final farbe = !lager.inBetrieb ? SalzFarben.neutral : lager.knapp ? SalzFarben.knapp(context) : SalzFarben.gut;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(width: 10, color: farbe),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(lager.name, style: t.titleMedium)),
+                  if (lager.knapp) Icon(Icons.warning_amber_rounded, color: farbe),
+                ]),
+                const SizedBox(height: 4),
+                Text(lager.saeckeText, style: t.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(lager.reichweiteText, style: t.bodyLarge?.copyWith(color: lager.knapp ? farbe : null)),
+                if (lager.meldungSeit != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Nachbestellen ist gemeldet', style: t.bodyMedium?.copyWith(color: farbe)),
+                  ),
+              ]),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
