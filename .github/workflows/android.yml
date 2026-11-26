@@ -187,9 +187,10 @@ jobs:
     runs-on:
       group: rosenweg-privat
       labels: [self-hosted, Linux, X64]
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: write
+      id-token: write    # OIDC-Token fuer /apps (kein Geheimnis)
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -222,3 +223,21 @@ jobs:
                 data: fs.readFileSync(path.join('ausgabe', f)),
               });
             }
+
+      # Auf www.rosenweg4303.ch/apps (und in den Katalog der geteilten Telefone, falls die
+      # Technik die App dort angelegt hat). Die Anlage nimmt nur mit dem Rosenweg-Schluessel
+      # signierte APKs an; ein Debug-Bau bleibt nur im GitHub-Release.
+      # Weg: Rosenweg/Website, pbx/README.md, "Seite /apps und App-Releases".
+      - name: Debug-Bau?
+        id: art
+        run: |
+          if ls ausgabe/*-debug-signiert.apk >/dev/null 2>&1; then
+            echo "debug=1" >> "$GITHUB_OUTPUT"
+            echo "::warning::Debug-signierte APK – nicht an /apps (Rosenweg-Signierschluessel als Secret fehlt)."
+          fi
+
+      - uses: Rosenweg/Website/.github/actions/apps-release@main
+        if: steps.art.outputs.debug != '1'
+        with:
+          dateien: ausgabe/*.apk
+          paket: ch.rosenweg4303.salz
