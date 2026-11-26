@@ -1,0 +1,157 @@
+# macOS-Installer (DMG) und iOS-Bau auf von GitHub gehosteten macOS-Runnern.
+# Muster: rosenweg-vm .github/workflows/macos.yml (ohne MacPorts: Salz hat
+# keine nativen Bibliotheken).
+#
+# Nur von Hand oder bei einem Tag v*: macOS-Minuten zaehlen bei privaten
+# Repos zehnfach.
+#
+# macOS: Signieren/Notarisieren nur, wenn die Secrets gesetzt sind (sonst ad hoc):
+#   MACOS_ZERTIFIKAT_P12       base64 eines .p12 mit "Developer ID Application"
+#   MACOS_ZERTIFIKAT_PASSWORT  Passwort des .p12
+#   NOTAR_KEY_P8               base64 des App-Store-Connect-API-Schluessels (.p8)
+#   NOTAR_KEY_ID, NOTAR_ISSUER Key-ID und Issuer-ID dazu
+#
+# iOS: nur ein Bau ohne Signatur (flutter build ios --no-codesign) als Probe,
+# dass die App fuer iOS baut. Verteilen (TestFlight/App Store oder Ad-hoc)
+# braucht das Apple Developer Program (Team-ID, Zertifikat, Profil); /apps
+# nimmt keine iOS-Dateien an.
+name: macOS und iOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # Release bei Tags
+  id-token: write  # OIDC-Token fuer www.rosenweg4303.ch/apps (kein Geheimnis)
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+
+jobs:
+  dmg:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - name: Zugang zur Basis (privates Repo)
+        uses: ./.github/actions/basis-zugang
+        with:
+          token: ${{ secrets.BASIS_TOKEN }}
+          deploy-key: ${{ secrets.BASIS_DEPLOY_KEY }}
+
+      - name: Signierzertifikat (falls Secret gesetzt)
+        env:
+          P12: ${{ secrets.MACOS_ZERTIFIKAT_P12 }}
+          P12_PW: ${{ secrets.MACOS_ZERTIFIKAT_PASSWORT }}
+          NOTAR_KEY_P8: ${{ secrets.NOTAR_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          if [ -n "$P12" ]; then
+            KC="$RUNNER_TEMP/signieren.keychain-db"; KC_PW="$(uuidgen)"
+            security create-keychain -p "$KC_PW" "$KC"
+            security set-keychain-settings -lut 3600 "$KC"
+            security unlock-keychain -p "$KC_PW" "$KC"
+            echo "$P12" | base64 --decode > "$RUNNER_TEMP/z.p12"
+            security import "$RUNNER_TEMP/z.p12" -k "$KC" -P "$P12_PW" -T /usr/bin/codesign
+            rm "$RUNNER_TEMP/z.p12"
+            security set-key-partition-list -S apple-tool:,apple: -k "$KC_PW" "$KC" >/dev/null
+            security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          fi
+          if [ -n "$NOTAR_KEY_P8" ]; then
+            echo "$NOTAR_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notar.p8"
+            echo "RW_NOTAR_KEY=$RUNNER_TEMP/notar.p8" >> "$GITHUB_ENV"
+          fi
+
+      - name: Bauen (App + DMG)
+        env:
+          RW_NOTAR_KEY_ID: ${{ secrets.NOTAR_KEY_ID }}
+          RW_NOTAR_ISSUER: ${{ secrets.NOTAR_ISSUER }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version: *\([^+ ]*\).*/\1/p' pubspec.yaml)
+          if [ "${GITHUB_REF_TYPE}" = tag ] && [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME passt nicht zu version $version in pubspec.yaml"
+            exit 1
+          fi
+          flutter config --no-analytics >/dev/null
+          flutter pub get --enforce-lockfile
+          macos/installer/bauen.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rosenweg-salz-macos
+          path: build/macos-installer/*.dmg
+          retention-days: 14
+
+      - name: Release (nur bei Tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "Rosenweg Salz $GITHUB_REF_NAME" --notes "Android, Linux (Debian 13), macOS, Windows" \
+            || gh release view "$GITHUB_REF_NAME" >/dev/null
+          gh release upload "$GITHUB_REF_NAME" build/macos-installer/*.dmg --clobber
+
+      # Weg: Rosenweg/Website, pbx/README.md, "Seite /apps und App-Releases".
+      - uses: Rosenweg/Website/.github/actions/apps-release@main
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          dateien: build/macos-installer/*.dmg
+
+      - name: Aufraeumen
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notar.p8" "$RUNNER_TEMP/basis_key" "$RUNNER_TEMP/known_hosts"
+          security delete-keychain "$RUNNER_TEMP/signieren.keychain-db" 2>/dev/null || true
+
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - name: Zugang zur Basis (privates Repo)
+        uses: ./.github/actions/basis-zugang
+        with:
+          token: ${{ secrets.BASIS_TOKEN }}
+          deploy-key: ${{ secrets.BASIS_DEPLOY_KEY }}
+
+      - name: Bauen (ohne Signatur)
+        run: |
+          set -euo pipefail
+          flutter config --no-analytics >/dev/null
+          flutter pub get --enforce-lockfile
+          flutter build ios --release --no-codesign
+          # Unsigniertes .ipa nur als Nachweis/Weitergabe an jemanden mit
+          # Developer-Konto (zum Signieren); installierbar ist es so nicht.
+          mkdir -p ausgabe/Payload
+          cp -R build/ios/iphoneos/Runner.app ausgabe/Payload/
+          (cd ausgabe && zip -qry rosenweg-salz-unsigniert.ipa Payload && rm -rf Payload)
+
+      - name: Schluessel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/basis_key" "$RUNNER_TEMP/known_hosts"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rosenweg-salz-ios-unsigniert
+          path: ausgabe/*.ipa
+          retention-days: 14

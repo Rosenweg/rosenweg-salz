@@ -44,7 +44,12 @@ Rechnen und Erinnern macht der Server (Rosenweg-API `/api/salz`), die App bucht 
 |---|---|
 | Android | ja, APK auf [rosenweg4303.ch/apps](https://www.rosenweg4303.ch/apps) |
 | Geteilte Rosenweg-Telefone | ja, über den Katalog auf /smartphones |
-| iOS | möglich (Projekt vorhanden), noch nicht verteilt |
+| Linux (Debian-Paket für die Stationen von Rosenweg OS) | ja, `.deb` (bei Tag `v*` an /apps; Stationen holen es vom PXE-Server) |
+| macOS | ja, DMG (bei Tag `v*` an /apps) |
+| Windows | ja, Setup mit Inno Setup (bei Tag `v*` an /apps) |
+| iOS | Bau ohne Signatur in der CI; nicht verteilt (braucht Apple Developer Program) |
+
+Version 1.0.0 (Tag `v1.0.0`). Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
 
 ## Rechte und Gruppen
 
@@ -72,6 +77,7 @@ Wer nur in einem Lager buchen darf, bekommt keine Lagerwahl und kommt direkt zum
 | Sack eingefüllt | Lager wählen → Sack scannen. Ein Sack ist abgebucht. |
 | Unbekannter Barcode | Die Technik erfasst ihn einmal mit Bezeichnung und Gewicht je Sack. Wer das nicht darf, sieht „Technik fragen“ und kann einen anderen Sack scannen. |
 | Rückgängig | gleich nach der Buchung auf der Startseite |
+| Barcode am Desktop (Linux, macOS, Windows) | „scannen“ öffnet eine Eingabeseite (`BarcodeEingabeSeite`), das Feld hat sofort den Fokus. Ein USB-Barcode-Scanner (meldet sich als Tastatur, schickt Ziffern und Enter) erfasst den Sack mit einem Scan; ohne Scanner die Nummer unter dem Strichcode eintippen und Enter oder „Weiter“. |
 
 Die Startseite zeigt je Lager Ort, Bestand, Reichweite und „Nächster Sack etwa am …“ (wenn der Server einen Termin liefert).
 
@@ -97,7 +103,9 @@ Jede Anfrage geht über Rosenweg Gerät und die Telefonanlage an `/api/salz/…`
 | `lib/salz/` | Datenmodell und API (`SalzApi` über `RosenwegApi` aus rosenweg_basis) |
 | `lib/oberflaeche/` | Startseite, Buchungsablauf, Scanner (mobile_scanner) |
 | [rosenweg-basis](https://github.com/Rosenweg/rosenweg-basis) | Anmeldung, API-Client, Thema und Rahmen (privates Repo, git-Abhängigkeit mit festem Tag in `pubspec.yaml`) |
-| `assets/logo/` | Logo aus dem Baukasten der Basis: Turm, Weg und Rose mit der Salzsack-Plakette; neu erzeugen mit `sh assets/logo/erzeugen.sh` |
+| `lib/oberflaeche/` Desktop | `BarcodeEingabeSeite`: Barcode per Eingabefeld oder USB-Scanner statt Kamera |
+| `linux/`, `macos/`, `windows/`, `ios/` | Desktop- und iOS-Projekte; `linux/paket/` baut das Debian-Paket, `macos/installer/` das DMG |
+| `assets/logo/` | Logo aus dem Baukasten der Basis: Turm, Weg und Rose mit der Salzsack-Plakette; neu erzeugen mit `sh assets/logo/erzeugen.sh` (macOS- und Windows-Symbol allein: `sh assets/logo/desktop-symbole.sh`; die Linux-Symbole rechnet `linux/paket/bauen.sh`) |
 
 **Anmeldung:** Authentik-Client `rosenweg-apps`, Rücksprungadresse `ch.rosenweg4303.salz:/anmeldung` (in Authentik als „Strikt“ eingetragen).
 
@@ -129,7 +137,7 @@ dependency_overrides:
 
 ## CI und Release
 
-`.github/workflows/android.yml` läuft auf dem eigenen Runner (Gruppe `rosenweg-privat`, wie rosenweg-vm).
+`.github/workflows/android.yml` läuft auf dem eigenen Runner (Gruppe `rosenweg-privat`, wie rosenweg-vm). Alle Läufe (Android, Linux, macOS, Windows) holen die Basis über `.github/actions/basis-zugang` (gleiches Secret).
 
 | Auslöser | Ergebnis |
 |---|---|
@@ -138,6 +146,30 @@ dependency_overrides:
 | Tag mit Rosenweg-Signatur | APK geht auch an **[rosenweg4303.ch/apps](https://www.rosenweg4303.ch/apps)** (GitHub-OIDC, kein Geheimnis; Weg in Rosenweg/Website, `pbx/README.md`) |
 
 Ein Debug-signierter Bau bleibt nur im GitHub-Release. Flutter, JDK und Android-Kommandozeilenwerkzeuge liegen als feste Versionen mit Prüfsumme in einem Cache im Benutzerverzeichnis des Runners.
+
+### Desktop und iOS
+
+| Plattform | Bau | Ergebnis | an /apps |
+|---|---|---|---|
+| Linux (Debian 13, amd64) | `.github/workflows/linux.yml` (eigener Runner, bei jedem Push/PR); lokal im Bau-Container: `linux/paket/im-container.sh` | `rosenweg-salz_<version>-<bau>_amd64.deb` | bei Tag `v*` (linux-deb) |
+| macOS | `.github/workflows/macos.yml` (nur Tag/von Hand); lokal `macos/installer/bauen.sh` | `Rosenweg-Salz-<version>.dmg` | bei Tag `v*` |
+| Windows | `.github/workflows/windows.yml` (nur Tag/von Hand), Inno Setup | `Rosenweg-Salz-<version>-Setup.exe` | bei Tag `v*` |
+| iOS | `.github/workflows/macos.yml`, Job `ios`: Bau ohne Signatur | unsigniertes `.ipa` als Artefakt | nein (braucht Apple Developer Program) |
+
+**Linux-Paket** (Muster rosenweg-profil / rosenweg-vm): das Flutter-Bündel
+liegt unter `/opt/rosenweg-salz`, Starter `rosenweg-salz`, Desktop-Datei
+`ch.rosenweg4303.salz.desktop`, Symbole in hicolor. Abhängigkeiten rechnet
+`dpkg-shlibdeps`, dazu `libgssapi-krb5-2` (stille Kerberos-Anmeldung der Basis
+an den Stationen) und `xdg-utils` (Browser für die Anmeldung). Die Stationen
+holen das Paket mit Prüfsumme vom PXE-Server (Rosenweg/os-stationen,
+`pakete/rosenweg-salz/`). Debian-Version = `version` aus `pubspec.yaml` mit
+der Baunummer als Revision (`1.0.0+1` → `1.0.0-1`): für ein neues Paket die
+Baunummer erhöhen.
+
+`linux/paket/im-container.sh` schickt den Arbeitsstand und die Basis in der
+Fassung aus `pubspec.yaml` (Tag aus `../rosenweg-basis`) in CT 141 auf pve3 und
+holt das .deb nach `linux/paket/out/` zurück. Läuft dort schon ein Flutter-Bau,
+bricht es ab.
 
 ## Konfiguration
 

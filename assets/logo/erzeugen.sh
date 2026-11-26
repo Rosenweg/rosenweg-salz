@@ -29,3 +29,8 @@ ios Icon-App-60x60@2x.png 120; ios Icon-App-60x60@3x.png 180
 ios Icon-App-76x76@1x.png 76;  ios Icon-App-76x76@2x.png 152
 ios Icon-App-83.5x83.5@2x.png 167; ios Icon-App-1024x1024@1x.png 1024
 rm -rf "$T"
+
+# Desktop-Symbole (Muster rosenweg-vm assets/logo/erzeugen.sh). Detailstufe
+# nach Pixelgroesse: bis 40 px *-winzig, bis 108 px *-klein, darueber voll.
+# Linux-Symbole fuers .deb rechnet linux/paket/bauen.sh selbst (gleiche Regel).
+sh assets/logo/desktop-symbole.sh
