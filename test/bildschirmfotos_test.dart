@@ -34,6 +34,11 @@ Future<void> foto(WidgetTester t, GlobalKey k, String name) async {
   });
 }
 
+DateTime tagIn(int n) {
+  final d = DateTime.now().add(Duration(days: n));
+  return DateTime(d.year, d.month, d.day);
+}
+
 void main() {
   testWidgets('Bildschirmfotos', (t) async {
     final sdk = File(Platform.resolvedExecutable).parent.parent.parent.parent.parent.parent.path;
@@ -52,9 +57,9 @@ void main() {
 
     final q = QuelleAttrappe();
     q.liste = [
-      neuesLager(1, 'Rosenweg 2', 2, saecke: 14, wochen: 10.5),
-      neuesLager(2, 'Rosenweg 4', 4, saecke: 3, wochen: 2.5, knapp: true),
-      neuesLager(3, 'Rosenweg 9', 9, saecke: 6),
+      neuesLager(1, 'Rosenweg 2', 2, saecke: 14, wochen: 10.5, naechster: tagIn(4)),
+      neuesLager(2, 'Rosenweg 4', 4, saecke: 3, wochen: 2.5, knapp: true, naechster: tagIn(1)),
+      neuesLager(3, 'Rosenweg 9', 9, saecke: 20, wochen: 33.8, naechster: tagIn(9)),
       neuesLager(4, 'Rosenweg Kooperation', null, inBetrieb: false, ort: 'Lager im Rosenweg 10'),
     ];
     final k = GlobalKey();

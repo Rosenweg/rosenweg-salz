@@ -76,6 +76,16 @@ void main() {
     expect(l.ort, 'Lager im Rosenweg 10');
   });
 
+  test('Naechster Sack: aus der API und als Text', () {
+    final l = Lager.ausJson({...lagerJson, 'naechster_sack': '2026-12-03'});
+    expect(l.naechsterSack, DateTime(2026, 12, 3));
+    expect(l.naechsterSackText(heute: DateTime(2026, 11, 28, 18)), 'Nächster Sack etwa am Do, 3. Dez.');
+    expect(l.naechsterSackText(heute: DateTime(2026, 12, 2, 9)), 'Nächster Sack morgen (Do, 3. Dez.)');
+    expect(l.naechsterSackText(heute: DateTime(2026, 12, 3, 23)), 'Nächster Sack heute');
+    expect(l.naechsterSackText(heute: DateTime(2026, 12, 5)), 'Nächster Sack war etwa am Do, 3. Dez. fällig');
+    expect(Lager.ausJson(lagerJson).naechsterSackText(), isNull);
+  });
+
   test('Reichweite-Text', () {
     expect(neuesLager(1, 'R2', 2, saecke: 1, wochen: 1).reichweiteText, 'reicht etwa 1 Woche');
     expect(neuesLager(1, 'R2', 2, saecke: 1, wochen: 0.4).reichweiteText, 'reicht weniger als 1 Woche');

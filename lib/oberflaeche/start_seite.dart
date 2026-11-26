@@ -171,6 +171,15 @@ class LagerKarte extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(lager.saeckeText, style: t.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                 Text(lager.reichweiteText, style: t.bodyLarge?.copyWith(color: lager.knapp ? farbe : null)),
+                if (lager.naechsterSackText() case final n?)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(children: [
+                      Icon(Icons.event_outlined, size: 18, color: t.bodyMedium?.color),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(n, style: t.bodyLarge)),
+                    ]),
+                  ),
                 if (lager.meldungSeit != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
