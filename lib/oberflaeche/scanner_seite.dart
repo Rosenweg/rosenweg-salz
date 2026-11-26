@@ -1,12 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+/// Lesen mit der Kamera nur auf Telefonen. Am Desktop (Stationen mit Linux,
+/// macOS, Windows) gibt es keine Kamera zum Scannen; dort ein Eingabefeld,
+/// in das auch ein USB-Barcode-Scanner tippt (er verhaelt sich wie eine
+/// Tastatur: Ziffern, dann Enter).
+bool get mitKamera =>
+    !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
+
 /// Kamera auf, Barcode des Sacks lesen, zurueck. Geht die Kamera nicht oder
-/// ist der Strichcode zerkratzt: Nummer eintippen.
+/// ist der Strichcode zerkratzt: Nummer eintippen. Ohne Kamera (Desktop)
+/// gleich die Eingabeseite.
 Future<String?> scannerOeffnen(BuildContext context) =>
-    Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => Theme(data: Theme.of(context), child: const ScannerSeite())));
+    Navigator.of(context).push<String>(MaterialPageRoute(
+        builder: (_) => Theme(data: Theme.of(context), child: mitKamera ? const ScannerSeite() : const BarcodeEingabeSeite())));
 
 class ScannerSeite extends StatefulWidget {
   const ScannerSeite({super.key});
@@ -119,4 +128,84 @@ Future<String?> barcodeEintippen(BuildContext context) {
       ],
     ),
   );
+}
+
+/// Desktop: Barcode per USB-Scanner oder von Hand. Das Feld hat sofort den
+/// Fokus und behaelt ihn, Enter (vom Scanner mitgeschickt) geht weiter — ein
+/// Sack ist also mit einem einzigen Scan erfasst, ohne Maus.
+class BarcodeEingabeSeite extends StatefulWidget {
+  const BarcodeEingabeSeite({super.key});
+  @override
+  State<BarcodeEingabeSeite> createState() => _BarcodeEingabeSeiteState();
+}
+
+class _BarcodeEingabeSeiteState extends State<BarcodeEingabeSeite> {
+  final _feld = TextEditingController();
+  final _fokus = FocusNode();
+  String? _hinweis;
+
+  @override
+  void dispose() {
+    _feld.dispose();
+    _fokus.dispose();
+    super.dispose();
+  }
+
+  void _weiter() {
+    final wert = _feld.text.trim();
+    if (wert.length < 4) {
+      setState(() => _hinweis = 'Bitte den ganzen Barcode scannen oder die Nummer darunter eintippen.');
+      _fokus.requestFocus();
+      return;
+    }
+    Navigator.of(context).pop(wert);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Barcode auf dem Sack')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(shrinkWrap: true, padding: const EdgeInsets.all(24), children: [
+            Icon(Icons.qr_code_scanner, size: 72, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            Text('Den Strichcode mit dem Hand-Scanner lesen oder die Nummer darunter eintippen.',
+                textAlign: TextAlign.center, style: t.titleMedium),
+            const SizedBox(height: 24),
+            TextField(
+              key: const Key('barcode-feld'),
+              controller: _feld,
+              focusNode: _fokus,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              style: const TextStyle(fontSize: 24, letterSpacing: 1.5),
+              decoration: InputDecoration(
+                hintText: 'z. B. 7610000000000',
+                border: const OutlineInputBorder(),
+                errorText: _hinweis,
+              ),
+              onChanged: (_) {
+                if (_hinweis != null) setState(() => _hinweis = null);
+              },
+              // Fokus behalten (sonst ginge er nach Enter verloren und der
+              // naechste Scan landete nirgends).
+              onEditingComplete: () {},
+              onSubmitted: (_) => _weiter(),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              key: const Key('barcode-weiter'),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+              onPressed: _weiter,
+              child: const Text('Weiter'),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }

@@ -103,33 +103,10 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Zugang zur Basis (privates Repo)
-        env:
-          BASIS_TOKEN: ${{ secrets.BASIS_TOKEN }}
-          BASIS_DEPLOY_KEY: ${{ secrets.BASIS_DEPLOY_KEY }}
-        run: |
-          set -euo pipefail
-          basis=https://github.com/Rosenweg/rosenweg-basis.git
-          if [ -n "${BASIS_DEPLOY_KEY:-}" ]; then
-            (umask 077; printf '%s\n' "$BASIS_DEPLOY_KEY" > "$RUNNER_TEMP/basis_key")
-            echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$RUNNER_TEMP/known_hosts"
-            {
-              echo "GIT_SSH_COMMAND=ssh -i $RUNNER_TEMP/basis_key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts -o StrictHostKeyChecking=yes"
-              echo "GIT_CONFIG_COUNT=1"
-              echo "GIT_CONFIG_KEY_0=url.git@github.com:Rosenweg/rosenweg-basis.git.insteadOf"
-              echo "GIT_CONFIG_VALUE_0=$basis"
-            } >> "$GITHUB_ENV"
-          elif [ -n "${BASIS_TOKEN:-}" ]; then
-            kopf=$(printf 'x-access-token:%s' "$BASIS_TOKEN" | base64 -w0)
-            echo "::add-mask::$kopf"
-            {
-              echo "GIT_CONFIG_COUNT=1"
-              echo "GIT_CONFIG_KEY_0=http.$basis.extraheader"
-              echo "GIT_CONFIG_VALUE_0=Authorization: Basic $kopf"
-            } >> "$GITHUB_ENV"
-          else
-            echo "::error::Secret BASIS_TOKEN (oder BASIS_DEPLOY_KEY) fehlt — ohne kann pub die private Basis Rosenweg/rosenweg-basis nicht holen. Siehe README, Abschnitt Bau auf GitHub."
-            exit 1
-          fi
+        uses: ./.github/actions/basis-zugang
+        with:
+          token: ${{ secrets.BASIS_TOKEN }}
+          deploy-key: ${{ secrets.BASIS_DEPLOY_KEY }}
 
       - name: pubspec.lock ohne lokale Basis
         run: |
@@ -214,15 +191,25 @@ jobs:
             const tag = context.ref.replace('refs/tags/', '');
             const dateien = fs.readdirSync('ausgabe');
             const debug = dateien.some((f) => f.endsWith('-debug-signiert.apk'));
-            const rel = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: `Rosenweg Salz ${tag}`,
-              body: debug
-                ? 'Android-APK, **mit dem Debug-Schluessel signiert** (noch kein Rosenweg-Signierschluessel hinterlegt). Pruefsummen in SHA256SUMS.'
-                : 'Android-APK, mit dem Rosenweg-Schluessel signiert. Pruefsummen in SHA256SUMS.',
-            });
+            const text = debug
+              ? 'Android-APK, **mit dem Debug-Schluessel signiert** (noch kein Rosenweg-Signierschluessel hinterlegt). Pruefsummen in SHA256SUMS.'
+              : 'Android-APK, mit dem Rosenweg-Schluessel signiert. Pruefsummen in SHA256SUMS.';
+            // Die Laeufe der anderen Plattformen (linux.yml, macos.yml,
+            // windows.yml) legen dasselbe Release womoeglich zuerst an.
+            const finden = () => github.rest.repos.getReleaseByTag({ owner: context.repo.owner, repo: context.repo.repo, tag });
+            let rel;
+            try {
+              rel = await finden();
+            } catch (e) {
+              try {
+                rel = await github.rest.repos.createRelease({
+                  owner: context.repo.owner, repo: context.repo.repo, tag_name: tag,
+                  name: `Rosenweg Salz ${tag}`, body: text,
+                });
+              } catch (e2) {
+                rel = await finden();
+              }
+            }
             for (const f of dateien) {
               await github.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,

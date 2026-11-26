@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Rosenweg Salz
+GenericName=Salzvorrat
+Comment=Salzvorrat der Enthärtungsanlagen: Anlieferung und eingefüllte Säcke buchen
+Exec=rosenweg-salz
+# Name im Symbol-Thema (hicolor), kein Pfad.
+Icon=rosenweg-salz
+Terminal=false
+# Dateiname = GTK-Anwendungskennung (APPLICATION_ID in linux/CMakeLists.txt).
+StartupWMClass=ch.rosenweg4303.salz
+Categories=Office;Utility;
+Keywords=Salz;Enthärtung;Enthärtungsanlage;Säcke;Lager;Rosenweg;

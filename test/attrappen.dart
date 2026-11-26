@@ -16,10 +16,10 @@ class TransportAttrappe implements Transport {
 }
 
 /// Wie RosenwegRahmen, aber ohne Sitzung: Thema der Basis, direkt die App.
-Widget testApp(Umgebung u) => MaterialApp(
+Widget testApp(Umgebung u, {Widget? start}) => MaterialApp(
       theme: rosenwegThema(Brightness.light),
       debugShowCheckedModeBanner: false,
-      home: SalzHaupt(umgebung: u),
+      home: start ?? SalzHaupt(umgebung: u),
     );
 
 Lager neuesLager(int id, String name, int? haus, {int saecke = 0, double? wochen, bool knapp = false, bool inBetrieb = true, String? ort, DateTime? naechster}) => Lager(
