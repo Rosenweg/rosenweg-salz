@@ -22,8 +22,8 @@ Widget testApp(Umgebung u) => MaterialApp(
       home: SalzHaupt(umgebung: u),
     );
 
-Lager neuesLager(int id, String name, int? haus, {int saecke = 0, double? wochen, bool knapp = false, bool inBetrieb = true, String? ort}) => Lager(
-      id: id, name: name, haus: haus, ort: ort, inBetrieb: inBetrieb, bestandSaecke: saecke, bestandKg: saecke * 25.0,
+Lager neuesLager(int id, String name, int? haus, {int saecke = 0, double? wochen, bool knapp = false, bool inBetrieb = true, String? ort, DateTime? naechster}) => Lager(
+      id: id, name: name, haus: haus, ort: ort, naechsterSack: naechster, inBetrieb: inBetrieb, bestandSaecke: saecke, bestandKg: saecke * 25.0,
       verbrauchKgWoche: wochen == null ? null : 25, reichweiteWochen: wochen,
       modus: wochen == null ? 'mindestbestand' : 'reichweite', knapp: knapp, schwelleWochen: 4, mindestSaecke: 4, meldungSeit: null);
 

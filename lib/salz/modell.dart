@@ -5,6 +5,16 @@ library;
 double? _zahl(Object? v) => v is num ? v.toDouble() : (v is String ? double.tryParse(v) : null);
 DateTime? _zeit(Object? v) => v is String ? DateTime.tryParse(v)?.toLocal() : null;
 
+/// 'YYYY-MM-DD' als Kalendertag (ohne Uhrzeit, ohne Zeitzone).
+DateTime? _tag(Object? v) {
+  if (v is! String || v.length < 10) return null;
+  final d = DateTime.tryParse(v.substring(0, 10));
+  return d == null ? null : DateTime(d.year, d.month, d.day);
+}
+
+const _wochentage = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const _monate = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sept.', 'Okt.', 'Nov.', 'Dez.'];
+
 class Lager {
   Lager({
     required this.id,
@@ -21,6 +31,7 @@ class Lager {
     required this.schwelleWochen,
     required this.mindestSaecke,
     required this.meldungSeit,
+    this.naechsterSack,
   });
 
   factory Lager.ausJson(Map<String, dynamic> j) => Lager(
@@ -38,6 +49,7 @@ class Lager {
         schwelleWochen: _zahl(j['schwelle_wochen']) ?? 4,
         mindestSaecke: (j['mindest_saecke'] as num?)?.toInt() ?? 0,
         meldungSeit: _zeit(j['meldung_seit']),
+        naechsterSack: _tag(j['naechster_sack']),
       );
 
   final int id;
@@ -57,6 +69,10 @@ class Lager {
   final int mindestSaecke;
   final DateTime? meldungSeit;
 
+  /// Tag, an dem der naechste Sack faellig ist (Server: letzte Einfuellung +
+  /// kg / Verbrauch). null = zu wenig Daten.
+  final DateTime? naechsterSack;
+
   /// "Rosenweg 9" -> "9", "Kooperation" -> "K" (fuer die grossen Wahlknoepfe).
   String get kurz => haus?.toString() ?? name.substring(0, 1);
 
@@ -72,6 +88,18 @@ class Lager {
       return 'reicht etwa $z ${z == '1' ? 'Woche' : 'Wochen'}';
     }
     return 'Reichweite folgt nach ein paar Einfüllungen';
+  }
+
+  /// "Nächster Sack etwa am Do, 3. Dez." / "heute" / "morgen" / "war … fällig"; null ohne Termin.
+  String? naechsterSackText({DateTime? heute}) {
+    final n = naechsterSack;
+    if (n == null) return null;
+    final h = heute ?? DateTime.now();
+    final diff = DateTime(n.year, n.month, n.day).difference(DateTime(h.year, h.month, h.day)).inHours ~/ 24;
+    final t = '${_wochentage[n.weekday - 1]}, ${n.day}. ${_monate[n.month - 1]}';
+    if (diff == 0) return 'Nächster Sack heute';
+    if (diff == 1) return 'Nächster Sack morgen ($t)';
+    return diff < 0 ? 'Nächster Sack war etwa am $t fällig' : 'Nächster Sack etwa am $t';
   }
 }
 
