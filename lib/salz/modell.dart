@@ -10,6 +10,7 @@ class Lager {
     required this.id,
     required this.name,
     required this.haus,
+    this.ort,
     required this.inBetrieb,
     required this.bestandSaecke,
     required this.bestandKg,
@@ -26,6 +27,7 @@ class Lager {
         id: (j['id'] as num).toInt(),
         name: j['name'] as String? ?? '',
         haus: (j['haus'] as num?)?.toInt(),
+        ort: j['ort'] as String?,
         inBetrieb: j['in_betrieb'] == true,
         bestandSaecke: (j['bestand_saecke'] as num?)?.toInt() ?? 0,
         bestandKg: _zahl(j['bestand_kg']) ?? 0,
@@ -41,6 +43,9 @@ class Lager {
   final int id;
   final String name;
   final int? haus;
+
+  /// Wo das Lager steht, falls nicht im Namen ("Lager im Rosenweg 10").
+  final String? ort;
   final bool inBetrieb;
   final int bestandSaecke;
   final double bestandKg;
@@ -85,15 +90,23 @@ class Sorte {
 }
 
 class Ich {
-  Ich({required this.name, required this.darfBuchen, required this.darfEinstellen});
+  Ich({required this.name, required this.darfBuchen, required this.darfEinstellen, this.darfSortenErfassen = false, this.lagerIds = const []});
   factory Ich.ausJson(Map<String, dynamic> j) => Ich(
         name: j['name'] as String?,
         darfBuchen: j['darf_buchen'] == true,
         darfEinstellen: j['darf_einstellen'] == true,
+        darfSortenErfassen: j['darf_sorten_erfassen'] == true,
+        lagerIds: (j['lager_ids'] as List? ?? const []).whereType<num>().map((n) => n.toInt()).toList(),
       );
   final String? name;
   final bool darfBuchen;
   final bool darfEinstellen;
+
+  /// Neuen Barcode einmal erfassen (Technik); Bewohner bitten die Technik.
+  final bool darfSortenErfassen;
+
+  /// Lager, in denen diese Person buchen darf (Bewohner: ihr Haus).
+  final List<int> lagerIds;
 }
 
 enum Art {

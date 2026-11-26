@@ -66,6 +66,16 @@ void main() {
     expect(RegExp(r'^[A-Za-z0-9-]{8,64}$').hasMatch(a), isTrue);
   });
 
+  test('Ich: Lager und Sorten-Recht; Lager mit Ort', () async {
+    final ich = await api((m, p, k) => (status: 200, json: {
+          'name': 'Bea', 'darf_buchen': true, 'darf_einstellen': false, 'darf_sorten_erfassen': false, 'lager_ids': [3],
+        })).ich();
+    expect(ich.lagerIds, [3]);
+    expect(ich.darfSortenErfassen, isFalse);
+    final l = Lager.ausJson({...lagerJson, 'name': 'Rosenweg Kooperation', 'haus': null, 'ort': 'Lager im Rosenweg 10'});
+    expect(l.ort, 'Lager im Rosenweg 10');
+  });
+
   test('Reichweite-Text', () {
     expect(neuesLager(1, 'R2', 2, saecke: 1, wochen: 1).reichweiteText, 'reicht etwa 1 Woche');
     expect(neuesLager(1, 'R2', 2, saecke: 1, wochen: 0.4).reichweiteText, 'reicht weniger als 1 Woche');

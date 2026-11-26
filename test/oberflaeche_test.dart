@@ -17,8 +17,10 @@ class MerkerAttrappe extends Merker {
 
 int abgemeldet = 0;
 
-Future<QuelleAttrappe> starten(WidgetTester t, {String? scan = '7610000000017', bool darf = true}) async {
-  final q = QuelleAttrappe(darf: darf);
+Future<QuelleAttrappe> starten(WidgetTester t,
+    {String? scan = '7610000000017', bool darf = true, bool sortenErfassen = true, List<Lager>? lager}) async {
+  final q = QuelleAttrappe(darf: darf, sortenErfassen: sortenErfassen);
+  if (lager != null) q.liste = lager;
   await t.pumpWidget(testApp(Umgebung(
     quelle: q,
     scannen: (_) async => scan,
@@ -37,8 +39,9 @@ void main() {
     expect(find.text('Rosenweg 2'), findsOneWidget);
     expect(find.text('12 Säcke'), findsOneWidget);
     expect(find.text('reicht etwa 9.5 Wochen'), findsOneWidget);
-    await t.scrollUntilVisible(find.text('Kooperation'), 200);
-    expect(find.text('Noch nichts gebucht'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Noch nichts gebucht'), 200);
+    expect(find.textContaining('Rosenweg Kooperation', findRichText: true), findsOneWidget);
+    expect(find.textContaining('Lager im Rosenweg 10', findRichText: true), findsOneWidget);
   });
 
   testWidgets('Abmelden fragt nach', (t) async {
@@ -107,5 +110,32 @@ void main() {
     expect(find.byKey(const Key('fehler')), findsOneWidget);
     expect(find.textContaining('zuerst die Anlieferung'), findsOneWidget);
     expect(find.text('Nochmals scannen'), findsOneWidget);
+  });
+
+  testWidgets('Bewohnerin mit einem Lager: keine Lagerwahl, gleich scannen und buchen', (t) async {
+    final q = await starten(t, sortenErfassen: false, lager: [neuesLager(3, 'Rosenweg 9', 9, saecke: 6)]);
+    q.sorten['7610000000017'] = Sorte(barcode: '7610000000017', bezeichnung: 'Tabletten', gewichtKg: 25);
+    expect(find.text('Rosenweg 9'), findsOneWidget);
+    await t.tap(find.byKey(const Key('knopf-eingefuellt')));
+    await t.pumpAndSettle();
+    expect(find.text('Wo?'), findsNothing);
+    expect(q.buchungen.single['lager'], 3);
+    expect(find.text('5 Säcke'), findsOneWidget);
+  });
+
+  testWidgets('Bewohnerin mit unbekanntem Barcode: Hinweis statt Sorten-Formular', (t) async {
+    final q = await starten(t, sortenErfassen: false, lager: [neuesLager(3, 'Rosenweg 9', 9, saecke: 6)]);
+    await t.tap(find.byKey(const Key('knopf-anlieferung')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('sorte-unbekannt')), findsOneWidget);
+    expect(find.byKey(const Key('sorte-name')), findsNothing);
+    expect(q.buchungen, isEmpty);
+  });
+
+  testWidgets('Scan abgebrochen bei nur einem Lager: zurueck zur Startseite', (t) async {
+    await starten(t, scan: null, lager: [neuesLager(3, 'Rosenweg 9', 9, saecke: 6)]);
+    await t.tap(find.byKey(const Key('knopf-anlieferung')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('knopf-anlieferung')), findsOneWidget);
   });
 }
