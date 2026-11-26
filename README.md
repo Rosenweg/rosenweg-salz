@@ -5,12 +5,20 @@ Kooperation (Lager im Rosenweg 10). Android zuerst, iOS möglich.
 
 - **Anlieferung**: Lager wählen, Barcode eines Sacks scannen, Anzahl Säcke wählen, buchen.
 - **Sack eingefüllt**: Lager wählen und den Sack scannen. Damit ist ein Sack abgebucht.
-- Ist ein Barcode noch unbekannt, wird er einmal mit Bezeichnung und Gewicht je Sack erfasst.
-- Auf der Startseite stehen für jedes Lager der Bestand und die Reichweite. Eine Buchung lässt sich gleich danach rückgängig machen.
+- Wer nur in einem Lager buchen darf (Bewohnerinnen und Bewohner: das eigene Haus),
+  bekommt keine Lagerwahl und kommt direkt zum Scanner.
+- Ist ein Barcode noch unbekannt, erfasst die Technik ihn einmal mit Bezeichnung und
+  Gewicht je Sack. Wer keine Sorten erfassen darf, sieht stattdessen den Hinweis, die
+  Technik zu fragen, und kann einen anderen Sack scannen.
+- Auf der Startseite stehen für jedes Lager der Ort, der Bestand, die Reichweite und
+  „Nächster Sack etwa am …“ (wenn die API einen Termin liefert). Eine Buchung lässt
+  sich gleich danach rückgängig machen.
 
 Server: Rosenweg-API `/api/salz` (Repo Rosenweg/Website,
-`api/routes/salz.js`, Beschreibung in `docs/salzvorrat.md`). Dort wird auch
-die Reichweite gerechnet und die Mail zum Nachbestellen an die Technik verschickt.
+`api/routes/salz.js`, Beschreibung in `docs/salzvorrat.md`). Dort werden auch
+die Reichweite und der nächste Sack gerechnet; die Mail zum Nachbestellen geht an die
+Technik und die Hauswart-Adressen des Lagers, am fälligen Tag erinnert sie den Hauswart
+ans Einfüllen (Mail, Web-Push).
 
 ## Aufbau
 
