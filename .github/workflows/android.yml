@@ -34,8 +34,10 @@ env:
   FLUTTER_SHA256: 2132e990f236f8d22e7c6314b29a191a95b10d7cbcfec9b4e2e303d996652cbb
   JDK_VERSION: "21.0.13.1+2"
   JDK_SHA256: bb8a93f9ae6e7a693b2b721e85dbeff26ae1a77447985a8d7afcdd9c7cf6222e
-  ANDROID_CMDLINE_TOOLS: "16111833"
-  ANDROID_CMDLINE_TOOLS_SHA256: 0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8
+  # cmdline-tools 19.0: ab 23.0 ist sdkmanager nur noch ein Verweis auf die
+  # neue "android"-CLI, --licenses tut dort nichts (keine Lizenzen, kein SDK).
+  ANDROID_CMDLINE_TOOLS: "13114758"
+  ANDROID_CMDLINE_TOOLS_SHA256: 7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee
 
 jobs:
   bauen:
@@ -82,6 +84,13 @@ jobs:
           fi
           ln -sfn "$ANDROID_CMDLINE_TOOLS" "$A/cmdline-tools/latest"
           (yes || true) | JAVA_HOME="$J" "$A/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$A" --licenses >/dev/null
+          # Flutter erkennt das SDK erst an licenses/ oder platform-tools/.
+          if [ ! -d "$A/platform-tools" ]; then
+            JAVA_HOME="$J" "$A/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$A" "platform-tools" >/dev/null
+          fi
+          for d in licenses platform-tools; do
+            [ -d "$A/$d" ] || { echo "::error::Android-SDK unvollstaendig: $A/$d fehlt"; exit 1; }
+          done
           echo "$C/flutter-$FLUTTER_VERSION/bin" >> "$GITHUB_PATH"
           echo "$J/bin" >> "$GITHUB_PATH"
           {
