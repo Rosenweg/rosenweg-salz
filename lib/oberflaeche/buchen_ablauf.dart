@@ -13,17 +13,19 @@ class AblaufErgebnis {
   final String text;
 }
 
-enum _Schritt { lager, scannen, sorteErfassen, anzahl, buchen }
+enum _Schritt { lager, scannen, sorteErfassen, sorteUnbekannt, anzahl, buchen }
 
 /// Eine Buchung in wenigen Schritten:
-///   Wo? (Lager) -> Sack scannen -> [neue Sorte einmal erfassen] ->
+///   Wo? (Lager; entfaellt, wenn es nur eines gibt) -> Sack scannen ->
+///   [neue Sorte einmal erfassen — nur die Technik] ->
 ///   bei Anlieferung: wie viele Säcke? -> gebucht.
 /// „Sack eingefüllt“ bucht direkt nach dem Scan einen Sack ab.
 class BuchenAblauf extends StatefulWidget {
-  const BuchenAblauf({super.key, required this.umgebung, required this.art, required this.lager});
+  const BuchenAblauf({super.key, required this.umgebung, required this.art, required this.lager, required this.ich});
   final Umgebung umgebung;
   final Art art;
   final List<Lager> lager;
+  final Ich ich;
   @override
   State<BuchenAblauf> createState() => _BuchenAblaufState();
 }
@@ -47,6 +49,14 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
   @override
   void initState() {
     super.initState();
+    // Nur ein Lager (Bewohnerin: ihr Haus): gleich zum Scannen.
+    if (widget.lager.length == 1) {
+      _schritt = _Schritt.scannen;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _lagerGewaehlt(widget.lager.single);
+      });
+      return;
+    }
     widget.umgebung.merker.letztesLager().then((v) {
       if (mounted) setState(() => _letztes = v);
     });
@@ -71,7 +81,11 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
     setState(() { _schritt = _Schritt.scannen; _fehler = null; });
     final code = await widget.umgebung.scannen(context);
     if (!mounted) return;
-    if (code == null) return setState(() => _schritt = _Schritt.lager);
+    if (code == null) {
+      // Abgebrochen: bei nur einem Lager gibt es nichts zu waehlen — zurueck zur Startseite.
+      if (widget.lager.length == 1) return Navigator.of(context).pop();
+      return setState(() => _schritt = _Schritt.lager);
+    }
     HapticFeedback.mediumImpact();
     _barcode = code;
     setState(() => _arbeitet = true);
@@ -80,7 +94,7 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
       if (!mounted) return;
       _sorte = s;
       if (s == null) {
-        setState(() => _schritt = _Schritt.sorteErfassen);
+        setState(() => _schritt = widget.ich.darfSortenErfassen ? _Schritt.sorteErfassen : _Schritt.sorteUnbekannt);
       } else {
         await _weiterNachSorte();
       }
@@ -192,6 +206,17 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
                   OutlinedButton(onPressed: _scannen, child: const Text('Nochmals scannen')),
                 ]),
         );
+      case _Schritt.sorteUnbekannt:
+        return ListView(key: const Key('sorte-unbekannt'), children: [
+          Text('Unbekannter Sack', style: t.headlineSmall),
+          const SizedBox(height: 8),
+          Text('Diesen Barcode kennt Rosenweg noch nicht. Bitte die Technik, die Sorte einmal zu erfassen – '
+              'danach geht das Buchen auch hier.', style: t.bodyLarge),
+          const SizedBox(height: 4),
+          Text(_barcode ?? '', style: t.bodyMedium?.copyWith(fontFamily: 'monospace')),
+          const SizedBox(height: 28),
+          OutlinedButton(onPressed: _scannen, child: const Text('Anderen Sack scannen')),
+        ]);
       case _Schritt.sorteErfassen:
         return SorteErfassen(barcode: _barcode!, arbeitet: _arbeitet, speichern: _sorteSpeichern);
       case _Schritt.anzahl:

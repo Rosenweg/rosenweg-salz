@@ -1,7 +1,7 @@
 # Rosenweg Salz
 
 App für den Salzvorrat der Enthärtungsanlagen in Rosenweg 2, 4, 9 und der
-Kooperation. Android zuerst, iOS möglich.
+Kooperation (Lager im Rosenweg 10). Android zuerst, iOS möglich.
 
 - **Anlieferung**: Lager wählen, Barcode eines Sacks scannen, Anzahl Säcke wählen, buchen.
 - **Sack eingefüllt**: Lager wählen und den Sack scannen. Damit ist ein Sack abgebucht.

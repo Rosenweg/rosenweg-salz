@@ -50,7 +50,7 @@ class _StartSeiteState extends State<StartSeite> {
     final ergebnis = await Navigator.of(context).push<AblaufErgebnis>(
       MaterialPageRoute(
         // Das Salz-Thema (grosse Knoepfe) auch auf der neuen Seite.
-        builder: (_) => Theme(data: Theme.of(context), child: BuchenAblauf(umgebung: widget.umgebung, art: art, lager: lager)),
+        builder: (_) => Theme(data: Theme.of(context), child: BuchenAblauf(umgebung: widget.umgebung, art: art, lager: lager, ich: widget.ich)),
       ),
     );
     if (!mounted) return;
@@ -160,7 +160,11 @@ class LagerKarte extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text(lager.name, style: t.titleMedium)),
+                  Expanded(
+                    child: Text.rich(TextSpan(text: lager.name, style: t.titleMedium, children: [
+                      if (lager.ort != null) TextSpan(text: ' · ${lager.ort}', style: t.bodyMedium),
+                    ])),
+                  ),
                   if (lager.knapp) Icon(Icons.warning_amber_rounded, color: farbe),
                 ]),
                 const SizedBox(height: 4),

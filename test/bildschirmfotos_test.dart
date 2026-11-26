@@ -55,7 +55,7 @@ void main() {
       neuesLager(1, 'Rosenweg 2', 2, saecke: 14, wochen: 10.5),
       neuesLager(2, 'Rosenweg 4', 4, saecke: 3, wochen: 2.5, knapp: true),
       neuesLager(3, 'Rosenweg 9', 9, saecke: 6),
-      neuesLager(4, 'Kooperation', null, inBetrieb: false),
+      neuesLager(4, 'Rosenweg Kooperation', null, inBetrieb: false, ort: 'Lager im Rosenweg 10'),
     ];
     final k = GlobalKey();
     var scan = '7612345000017';

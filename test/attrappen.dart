@@ -22,14 +22,15 @@ Widget testApp(Umgebung u) => MaterialApp(
       home: SalzHaupt(umgebung: u),
     );
 
-Lager neuesLager(int id, String name, int? haus, {int saecke = 0, double? wochen, bool knapp = false, bool inBetrieb = true}) => Lager(
-      id: id, name: name, haus: haus, inBetrieb: inBetrieb, bestandSaecke: saecke, bestandKg: saecke * 25.0,
+Lager neuesLager(int id, String name, int? haus, {int saecke = 0, double? wochen, bool knapp = false, bool inBetrieb = true, String? ort}) => Lager(
+      id: id, name: name, haus: haus, ort: ort, inBetrieb: inBetrieb, bestandSaecke: saecke, bestandKg: saecke * 25.0,
       verbrauchKgWoche: wochen == null ? null : 25, reichweiteWochen: wochen,
       modus: wochen == null ? 'mindestbestand' : 'reichweite', knapp: knapp, schwelleWochen: 4, mindestSaecke: 4, meldungSeit: null);
 
 class QuelleAttrappe implements SalzQuelle {
-  QuelleAttrappe({this.darf = true});
+  QuelleAttrappe({this.darf = true, this.sortenErfassen = true});
   bool darf;
+  bool sortenErfassen;
   final sorten = <String, Sorte>{};
   final buchungen = <Map<String, Object>>[];
   Object? buchenFehler;
@@ -37,11 +38,13 @@ class QuelleAttrappe implements SalzQuelle {
     neuesLager(1, 'Rosenweg 2', 2, saecke: 12, wochen: 9.5),
     neuesLager(2, 'Rosenweg 4', 4, saecke: 3, wochen: 2.5, knapp: true),
     neuesLager(3, 'Rosenweg 9', 9, saecke: 6),
-    neuesLager(4, 'Kooperation', null, inBetrieb: false),
+    neuesLager(4, 'Rosenweg Kooperation', null, inBetrieb: false, ort: 'Lager im Rosenweg 10'),
   ];
 
   @override
-  Future<Ich> ich() async => Ich(name: 'Test Person', darfBuchen: darf, darfEinstellen: false);
+  Future<Ich> ich() async => Ich(
+      name: 'Test Person', darfBuchen: darf, darfEinstellen: false, darfSortenErfassen: sortenErfassen,
+      lagerIds: [for (final l in liste) l.id]);
   @override
   Future<List<Lager>> lager() async => liste;
   @override
@@ -64,4 +67,4 @@ class QuelleAttrappe implements SalzQuelle {
   Future<Lager> rueckgaengig(int buchungId) async => liste.first;
 }
 
-Lager mitBestand(Lager a, int d) => neuesLager(a.id, a.name, a.haus, saecke: a.bestandSaecke + d, wochen: a.reichweiteWochen);
+Lager mitBestand(Lager a, int d) => neuesLager(a.id, a.name, a.haus, saecke: a.bestandSaecke + d, wochen: a.reichweiteWochen, ort: a.ort);
