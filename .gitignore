@@ -49,3 +49,7 @@ app.*.map.json
 
 # Lokale Entwicklung gegen ../rosenweg-basis (siehe README)
 pubspec_overrides.yaml
+
+# Paketbau
+/linux/paket/arbeit/
+/linux/paket/out/

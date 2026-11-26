@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rosenweg_salz/oberflaeche/scanner_seite.dart';
 import 'package:rosenweg_salz/oberflaeche/umgebung.dart';
 import 'package:rosenweg_salz/salz/modell.dart';
 
@@ -97,5 +98,28 @@ void main() {
     await t.pump(const Duration(milliseconds: 800));
     await foto(t, k, 'salz-app-gebucht');
     q.sorten[scan] = Sorte(barcode: scan, bezeichnung: 'Regeneriersalz Tabletten', gewichtKg: 25);
+  }, skip: ziel.isEmpty);
+
+  testWidgets('Bildschirmfoto Desktop: Barcode per USB-Scanner oder Tastatur', (t) async {
+    final sdk = File(Platform.resolvedExecutable).parent.parent.parent.parent.parent.parent.path;
+    final fonts = '$sdk/bin/cache/artifacts/material_fonts';
+    await t.runAsync(() async {
+      for (final familie in ['Roboto', 'FlutterTest', 'Ahem', 'monospace']) {
+        await schriftLaden(familie, ['$fonts/Roboto-Regular.ttf', '$fonts/Roboto-Medium.ttf', '$fonts/Roboto-Bold.ttf']);
+      }
+      await schriftLaden('MaterialIcons', ['$fonts/MaterialIcons-Regular.otf']);
+    });
+    // Fenstergroesse der Linux-App (linux/runner/my_application.cc)
+    t.view.physicalSize = const Size(900, 760);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final k = GlobalKey();
+    await t.pumpWidget(RepaintBoundary(
+      key: k,
+      child: testApp(Umgebung(quelle: QuelleAttrappe(), scannen: (_) async => null, abmelden: () async {}),
+          start: const BarcodeEingabeSeite()),
+    ));
+    await t.pumpAndSettle();
+    await foto(t, k, 'salz-desktop-barcode');
   }, skip: ziel.isEmpty);
 }
