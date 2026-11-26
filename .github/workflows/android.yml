@@ -178,6 +178,12 @@ jobs:
       contents: write
       id-token: write    # OIDC-Token fuer /apps (kein Geheimnis)
     steps:
+      # Selbst gehosteter Runner: der Arbeitsordner bleibt zwischen Jobs liegen.
+      # Am 26.11.2026 (v1.0.0) lag noch das .deb des Linux-Laufs in ausgabe/,
+      # und der Android-Job lud es mit hoch. Darum vorher leeren.
+      - name: ausgabe/ leeren
+        run: rm -rf ausgabe
+
       - uses: actions/download-artifact@v4
         with:
           name: rosenweg-salz-android
