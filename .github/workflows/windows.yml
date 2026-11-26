@@ -65,7 +65,10 @@ jobs:
           if [ ! -x "$iscc" ]; then
             choco install innosetup -y --no-progress >/dev/null
           fi
-          "$iscc" "/DVersion=$VERSION" "/DQuelle=$GITHUB_WORKSPACE\\build\\windows\\x64\\runner\\Release" windows/installer/rosenweg-salz.iss
+          # Git-Bash wandelt Argumente wie /DVersion=... sonst in Pfade um
+          # ("You may not specify more than one script filename").
+          MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+            "$iscc" "/DVersion=$VERSION" "/DQuelle=$GITHUB_WORKSPACE\\build\\windows\\x64\\runner\\Release" 'windows\installer\rosenweg-salz.iss'
           ls -la build/windows-installer
 
       - name: Schluessel entfernen
