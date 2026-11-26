@@ -64,6 +64,27 @@ Secrets (Settings → Secrets and variables → Actions):
 | `BASIS_TOKEN` | Fein granulierter Token, nur Rosenweg/rosenweg-basis, *Contents: Read-only* — damit `pub get` die private Basis holen kann. Alternative: `BASIS_DEPLOY_KEY` (privater SSH-Schlüssel eines Deploy-Keys auf rosenweg-basis, sobald Deploy-Keys in der Organisation erlaubt sind). |
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Rosenweg-Signierschlüssel (optional). Fehlen sie, ist die APK mit dem Debug-Schlüssel signiert und heisst `…-debug-signiert.apk`. |
 
+## Geteilte Rosenweg-Telefone
+
+Auf den geteilten Telefonen (mit Rosenweg Gerät, Anmeldung per Karte am
+Sperrbildschirm) zeigt die App keinen Anmeldeschirm und kein „Abmelden“: sie
+arbeitet für die Person, die gerade am Telefon angemeldet ist. Jede Anfrage
+geht über Rosenweg Gerät und die Telefonanlage an `/api/salz/…`
+(rosenweg-basis, `docs/geteilte-telefone.md`); die App sieht kein Token. Ist
+niemand angemeldet, steht dort „Bitte zuerst mit der Karte anmelden“.
+
+Voraussetzungen:
+
+- **Rosenweg-Signatur.** Rosenweg Gerät gibt die Anfragen nur an Apps mit
+  seiner Signatur weiter (`ch.rosenweg4303.permission.ANLAGE`, signature). Ein
+  Debug-Bau bekommt „Rosenweg Gerät verweigert den Zugriff (andere
+  Signatur?)“. Also die vier `ANDROID_*`-Secrets oben setzen.
+- **Rosenweg Gerät ab v236** (`portal_anfrage`) und die PBX-API mit
+  `POST /api/telefon/portal` (Rosenweg/Website, `pbx/README.md`).
+- **Katalog** der geteilten Telefone: Eintrag `ch.rosenweg4303.salz` auf
+  rosenweg4303.ch/smartphones mit den Gruppen, die die App sehen. Danach
+  bringt jeder Release-Tag die APK auch dorthin.
+
 ## Lizenz
 
 GPL-3.0-or-later, siehe `LICENSE`.

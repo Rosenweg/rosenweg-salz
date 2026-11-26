@@ -55,6 +55,21 @@ void main() {
     expect(abgemeldet, 1);
   });
 
+  testWidgets('geteiltes Telefon, niemand angemeldet: Hinweis zur Karte statt endlos laden, kein Abmelden', (t) async {
+    final q = _NiemandAngemeldet();
+    await t.pumpWidget(testApp(Umgebung(quelle: q, scannen: (_) async => null, abmelden: () async {}, darfAbmelden: false)));
+    await t.pumpAndSettle();
+    expect(find.textContaining('mit der Karte anmelden'), findsOneWidget);
+    expect(find.text('Nochmals'), findsOneWidget);
+    q.angemeldet = true;
+    await t.tap(find.text('Nochmals'));
+    await t.pumpAndSettle();
+    expect(find.text('Anlieferung'), findsOneWidget);
+    await t.tap(find.byType(PopupMenuButton<String>));
+    await t.pumpAndSettle();
+    expect(find.text('Abmelden'), findsNothing);
+  });
+
   testWidgets('ohne Freigabe -> Hinweis', (t) async {
     await starten(t, darf: false);
     expect(find.textContaining('nicht freigeschaltet'), findsOneWidget);
@@ -138,4 +153,13 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byKey(const Key('knopf-anlieferung')), findsOneWidget);
   });
+}
+
+class _NiemandAngemeldet extends QuelleAttrappe {
+  bool angemeldet = false;
+  @override
+  Future<Ich> ich() async {
+    if (!angemeldet) throw NichtAngemeldet('Am Telefon ist niemand angemeldet. Bitte zuerst mit der Karte anmelden.');
+    return super.ich();
+  }
 }

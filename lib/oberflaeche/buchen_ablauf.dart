@@ -63,7 +63,7 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
   }
 
   void _fehlerZeigen(Object e) {
-    if (e is NichtAngemeldet) {
+    if (e is NichtAngemeldet && !widget.umgebung.geteiltesTelefon) {
       // Die Sitzung zeigt den Anmeldeschirm; diese Seite schliessen.
       Navigator.of(context).pop();
       return;

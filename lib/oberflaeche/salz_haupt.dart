@@ -30,8 +30,10 @@ class _SalzHauptState extends State<SalzHaupt> {
     try {
       final ich = await widget.umgebung.quelle.ich();
       if (mounted) setState(() => _ich = ich);
-    } on NichtAngemeldet {
-      // Die Sitzung wechselt selbst zum Anmeldeschirm.
+    } on NichtAngemeldet catch (e) {
+      // Eigenes Handy: die Sitzung wechselt selbst zum Anmeldeschirm.
+      // Geteiltes Telefon: "Bitte zuerst mit der Karte anmelden", mit Nochmals.
+      if (mounted && widget.umgebung.geteiltesTelefon) setState(() => _fehler = e);
     } catch (e) {
       if (mounted) setState(() => _fehler = e);
     }
