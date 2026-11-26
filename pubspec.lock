@@ -433,8 +433,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v0.2.0"
-      resolved-ref: "4a69937dbfc03e34d79010c9eef186342c55b253"
+      ref: karten-anmeldung
+      resolved-ref: "9865fca8bf3a5de55dfa280fde014871f32243f1"
       url: "https://github.com/Rosenweg/rosenweg-basis.git"
     source: git
     version: "0.1.0"
