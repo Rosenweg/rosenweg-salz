@@ -29,11 +29,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Rosenweg-Signierschluessel nur ueber Umgebungsvariablen (CI-Secrets,
+    // siehe .github/workflows/android.yml). Ohne sie: Debug-Signatur, damit
+    // `flutter run --release` und der CI-Bau ohne Schluessel gehen.
+    val signierDatei = providers.environmentVariable("SIGNING_STORE_FILE").orNull
+    signingConfigs {
+        if (signierDatei != null) {
+            create("rosenweg") {
+                storeFile = file(signierDatei)
+                storePassword = providers.environmentVariable("SIGNING_STORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("SIGNING_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("SIGNING_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (signierDatei != null) "rosenweg" else "debug")
         }
     }
 }
