@@ -35,8 +35,9 @@ class _StartSeiteState extends State<StartSeite> {
     try {
       final l = await widget.umgebung.quelle.lager();
       if (mounted) setState(() { _lager = l; _fehler = null; });
-    } on NichtAngemeldet {
-      // Die Sitzung wechselt selbst zum Anmeldeschirm.
+    } on NichtAngemeldet catch (e) {
+      // Eigenes Handy: die Sitzung wechselt selbst zum Anmeldeschirm.
+      if (mounted && widget.umgebung.geteiltesTelefon) setState(() => _fehler = e.toString());
     } catch (e) {
       if (mounted) setState(() => _fehler = e.toString());
     } finally {

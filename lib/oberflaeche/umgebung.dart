@@ -20,6 +20,11 @@ class Umgebung {
   /// Rosenweg Geraet an und ab, dann gibt es den Menuepunkt nicht.
   final Future<void> Function() abmelden;
   final bool darfAbmelden;
+
+  /// Geteiltes Telefon (Rosenweg Geraet meldet an und ab): ohne angemeldete
+  /// Person zeigt die App den Hinweis zur Karte — einen Anmeldeschirm gibt es
+  /// hier nicht, die Sitzung wechselt also auch nicht dorthin.
+  bool get geteiltesTelefon => !darfAbmelden;
   final Merker merker;
 }
 
