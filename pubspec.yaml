@@ -41,7 +41,8 @@ dependencies:
   rosenweg_basis:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
-      ref: v0.2.0
+      # Desktop-Gerüst (rosenweg-basis PR #9); nach dem Tag v0.3.0 hier v0.3.0.
+      ref: 85750349be05fd379128d89ab012d84937f481bf
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6

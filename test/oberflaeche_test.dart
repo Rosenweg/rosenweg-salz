@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rosenweg_basis/rosenweg_basis.dart';
 import 'package:rosenweg_salz/oberflaeche/umgebung.dart';
@@ -165,6 +166,49 @@ void main() {
     );
     expect(find.textContaining('Nächster Sack etwa am'), findsOneWidget);
     expect(find.byIcon(Icons.event_outlined), findsOneWidget);
+  });
+
+  group('Desktop (Fenster 1280 x 800)', () {
+    // Am Desktop (kein Kamera-Scan): Linux-Station.
+    final linux = TargetPlatformVariant.only(TargetPlatform.linux);
+
+    Future<QuelleAttrappe> desktop(WidgetTester t) {
+      t.view.physicalSize = const Size(1280, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      return starten(t);
+    }
+
+    testWidgets('Startseite: Buchen links, Lager rechts nebeneinander, Neu laden', (t) async {
+      await desktop(t);
+      expect(find.text('Buchen'), findsOneWidget);
+      expect(find.byKey(const Key('neu-laden')), findsOneWidget);
+      final knopf = t.getRect(find.byKey(const Key('knopf-anlieferung')));
+      final lager2 = t.getRect(find.text('Rosenweg 2'));
+      final lager4 = t.getRect(find.text('Rosenweg 4'));
+      expect(knopf.width, lessThan(400));
+      expect(lager2.left, greaterThan(knopf.right));
+      expect(lager4.top, lager2.top, reason: 'Kacheln nebeneinander');
+    }, variant: linux);
+
+    testWidgets('Tastatur: Ziffer waehlt das Lager, Pfeil aendert, Enter bucht', (t) async {
+      final q = await desktop(t);
+      q.sorten['7610000000017'] = Sorte(barcode: '7610000000017', bezeichnung: 'Tabletten', gewichtKg: 25);
+      await t.tap(find.byKey(const Key('knopf-anlieferung')));
+      await t.pumpAndSettle();
+      expect(find.text('3'), findsOneWidget, reason: 'Tastenkappe am dritten Lager');
+      await t.sendKeyEvent(LogicalKeyboardKey.digit3);
+      await t.pumpAndSettle();
+      expect(find.text('Wie viele Säcke?'), findsOneWidget);
+      await t.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await t.pump();
+      expect(find.byKey(const Key('anzahl')), findsOneWidget);
+      expect(find.text('11'), findsOneWidget);
+      await t.sendKeyEvent(LogicalKeyboardKey.enter);
+      await t.pumpAndSettle();
+      expect(q.buchungen.single['lager'], 3);
+      expect(q.buchungen.single['saecke'], 11);
+    }, variant: linux);
   });
 }
 

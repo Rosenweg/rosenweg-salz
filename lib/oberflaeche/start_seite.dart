@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:rosenweg_basis/rosenweg_basis.dart';
 
@@ -10,6 +11,8 @@ import 'thema.dart';
 import 'umgebung.dart';
 
 /// Startseite: zwei grosse Knoepfe, darunter jedes Lager mit Bestand und Reichweite.
+/// Am Desktop (ab 840 px, RosenwegSpalten) die Knoepfe links und die Lager
+/// rechts als Kacheln; F5 laedt neu.
 class StartSeite extends StatefulWidget {
   const StartSeite({super.key, required this.umgebung, required this.ich});
   final Umgebung umgebung;
@@ -60,6 +63,8 @@ class _StartSeiteState extends State<StartSeite> {
     setState(() => _lager = [for (final l in _lager!) l.id == b.lager.id ? b.lager : l]);
     final bote = ScaffoldMessenger.of(context);
     bote.showSnackBar(SnackBar(
+      // Am Desktop nicht ueber die ganze Fensterbreite.
+      width: Fensterklasse.von(context).istBreit ? 560 : null,
       duration: const Duration(seconds: 8),
       content: Text('${ergebnis.text} – ${b.lager.name}: jetzt ${b.lager.saeckeText}', style: const TextStyle(fontSize: 16)),
       action: SnackBarAction(label: 'Rückgängig', onPressed: () => _rueckgaengig(b)),
@@ -88,54 +93,99 @@ class _StartSeiteState extends State<StartSeite> {
   Widget build(BuildContext context) {
     final lager = _lager;
     final bereit = lager != null && lager.isNotEmpty;
-    return Scaffold(
-      appBar: AppBar(
-        leading: Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/logo/rosenweg-salz-klein.png')),
-        title: const Text('Rosenweg Salz'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (w) => w == 'ab' ? _abmelden() : zeigeUeber(context, salzApp),
-            itemBuilder: (_) => [
-              PopupMenuItem(enabled: false, child: Text(widget.ich.name ?? 'Angemeldet')),
-              if (widget.umgebung.darfAbmelden) const PopupMenuItem(value: 'ab', child: Text('Abmelden')),
-              const PopupMenuItem(value: 'ueber', child: Text('Über Rosenweg Salz')),
-            ],
-          ),
-        ],
+    final t = Theme.of(context).textTheme;
+    final breit = Fensterklasse.von(context).istBreit;
+    final knoepfe = [
+      FilledButton.icon(
+        key: const Key('knopf-anlieferung'),
+        onPressed: bereit ? () => _buchen(Art.anlieferung) : null,
+        icon: const Icon(Icons.local_shipping_outlined, size: 30),
+        label: const Text('Anlieferung'),
       ),
-      body: RefreshIndicator(
-        onRefresh: _laden,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            FilledButton.icon(
-              key: const Key('knopf-anlieferung'),
-              onPressed: bereit ? () => _buchen(Art.anlieferung) : null,
-              icon: const Icon(Icons.local_shipping_outlined, size: 30),
-              label: const Text('Anlieferung'),
+      const SizedBox(height: 12),
+      FilledButton.icon(
+        key: const Key('knopf-eingefuellt'),
+        style: FilledButton.styleFrom(backgroundColor: RosenwegFarben.dunkelrot, foregroundColor: Colors.white),
+        onPressed: bereit ? () => _buchen(Art.eingefuellt) : null,
+        icon: const Icon(Icons.move_to_inbox_outlined, size: 30),
+        label: const Text('Sack eingefüllt'),
+      ),
+    ];
+    final fehler = [
+      if (_fehler != null)
+        Card(
+          color: Theme.of(context).colorScheme.errorContainer,
+          child: ListTile(
+            leading: const Icon(Icons.cloud_off),
+            title: Text(_fehler!),
+            trailing: TextButton(onPressed: _laden, child: const Text('Nochmals')),
+          ),
+        ),
+      if (lager == null && _fehler == null)
+        const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
+    ];
+    // Desktop: F5 bzw. Strg/Cmd+R laedt neu (Herunterziehen gibt es mit der Maus nicht).
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f5): _laden,
+        const SingleActivator(LogicalKeyboardKey.keyR, control: true): _laden,
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): _laden,
+      },
+      child: Focus(
+        autofocus: breit,
+        child: RosenwegGeruest(
+          logo: Image.asset('assets/logo/rosenweg-salz-klein.png'),
+          titel: const Text('Rosenweg Salz'),
+          maxBreite: null,
+          aktionen: [
+            if (breit)
+              IconButton(key: const Key('neu-laden'), tooltip: 'Neu laden (F5)', onPressed: _laedt ? null : _laden, icon: const Icon(Icons.refresh)),
+            PopupMenuButton<String>(
+              onSelected: (w) => w == 'ab' ? _abmelden() : zeigeUeber(context, salzApp),
+              itemBuilder: (_) => [
+                PopupMenuItem(enabled: false, child: Text(widget.ich.name ?? 'Angemeldet')),
+                if (widget.umgebung.darfAbmelden) const PopupMenuItem(value: 'ab', child: Text('Abmelden')),
+                const PopupMenuItem(value: 'ueber', child: Text('Über Rosenweg Salz')),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              key: const Key('knopf-eingefuellt'),
-              style: FilledButton.styleFrom(backgroundColor: RosenwegFarben.dunkelrot, foregroundColor: Colors.white),
-              onPressed: bereit ? () => _buchen(Art.eingefuellt) : null,
-              icon: const Icon(Icons.move_to_inbox_outlined, size: 30),
-              label: const Text('Sack eingefüllt'),
-            ),
-            const SizedBox(height: 24),
-            if (_fehler != null)
-              Card(
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: ListTile(
-                  leading: const Icon(Icons.cloud_off),
-                  title: Text(_fehler!),
-                  trailing: TextButton(onPressed: _laden, child: const Text('Nochmals')),
-                ),
-              ),
-            if (lager == null && _fehler == null)
-              const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
-            for (final l in lager ?? const <Lager>[]) LagerKarte(lager: l),
           ],
+          // Handy: wie bisher eine Spalte. Desktop: Buchen links, Lager rechts.
+          inhalt: RosenwegSpalten(
+            schmal: RefreshIndicator(
+              onRefresh: _laden,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  ...knoepfe,
+                  const SizedBox(height: 24),
+                  ...fehler,
+                  for (final l in lager ?? const <Lager>[]) LagerKarte(lager: l),
+                ],
+              ),
+            ),
+            links: ListView(padding: const EdgeInsets.all(24), children: [
+              Text('Buchen', style: t.titleLarge),
+              const SizedBox(height: 16),
+              ...knoepfe,
+              const SizedBox(height: 24),
+              Text('Den Strichcode mit dem Hand-Scanner lesen oder die Nummer darunter eintippen.',
+                  style: t.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ]),
+            rechts: ListView(padding: const EdgeInsets.all(24), children: [
+              Text('Lager', style: t.titleLarge),
+              const SizedBox(height: 16),
+              ...fehler,
+              // Kacheln nebeneinander, je mindestens 320 px breit.
+              LayoutBuilder(builder: (context, c) {
+                final spalten = (c.maxWidth / 320).floor().clamp(1, 3);
+                const abstand = 12.0;
+                final b = (c.maxWidth - abstand * (spalten - 1)) / spalten;
+                return Wrap(spacing: abstand, children: [
+                  for (final l in lager ?? const <Lager>[]) SizedBox(width: b, child: LagerKarte(lager: l)),
+                ]);
+              }),
+            ]),
+          ),
         ),
       ),
     );
