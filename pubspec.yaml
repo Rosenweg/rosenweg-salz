@@ -42,7 +42,7 @@ dependencies:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
       # Anmeldeschirm wie auf Android (rosenweg-basis#10); nach dem Merge auf den Tag v0.3.0 umstellen
-      ref: anmeldeschirm-flutter
+      ref: v0.3.0
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6

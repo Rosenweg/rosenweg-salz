@@ -465,8 +465,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: anmeldeschirm-flutter
-      resolved-ref: "694c1034641eeb4bcb63562e63fdc9e3ad98699c"
+      ref: v0.3.0
+      resolved-ref: "18ea1f509cc096e6b1adfee556b908a0aef89fb7"
       url: "https://github.com/Rosenweg/rosenweg-basis.git"
     source: git
     version: "0.3.0"
