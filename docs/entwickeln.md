@@ -17,7 +17,8 @@ Einfüllen (Mail, Web-Push).
   Die App meldet sich mit dem Authentik-Client `rosenweg-apps` an; die Rücksprungadresse ist
   `ch.rosenweg4303.salz:/anmeldung` und muss in Authentik als „Strikt“ eingetragen sein.
 - Logo: aus dem Logo-Baukasten der Basis (Turm, Weg und Rose, dazu die Plakette mit dem
-  Salzsack `assets/logo/zeichen/salz.svg`): `sh assets/logo/erzeugen.sh`
+  Salzsack, Zeichen `werkzeug/logo/zeichen/salz.svg` der Basis; Grund Bewohner-Rot):
+  `sh assets/logo/erzeugen.sh [../rosenweg-basis]`
 
 ## Entwickeln
 

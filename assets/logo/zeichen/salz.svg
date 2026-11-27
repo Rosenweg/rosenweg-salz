@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <title>Salzsack mit Kristallen (Rosenweg Salz)</title>
-  <path d="M146 30 Q200 56 254 30 L234 106 H166 Z"/>
-  <rect x="146" y="110" width="108" height="24" rx="12"/>
-  <path fill-rule="evenodd" d="M168 140 C128 166 74 204 74 288 C74 364 122 386 200 386 C278 386 326 364 326 288 C326 204 272 166 232 140 Z M158 268 L192 302 L158 336 L124 302 Z M242 268 L276 302 L242 336 L208 302 Z M200 212 L234 246 L200 280 L166 246 Z"/>
-</svg>
