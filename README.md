@@ -108,7 +108,7 @@ Jede Anfrage geht über Rosenweg Gerät und die Telefonanlage an `/api/salz/…`
 | [rosenweg-basis](https://github.com/Rosenweg/rosenweg-basis) | Anmeldung, API-Client, Thema und Rahmen (privates Repo, git-Abhängigkeit mit festem Tag in `pubspec.yaml`) |
 | `lib/oberflaeche/` Desktop | `BarcodeEingabeSeite`: Barcode per Eingabefeld oder USB-Scanner statt Kamera |
 | `linux/`, `macos/`, `windows/`, `ios/` | Desktop- und iOS-Projekte; `linux/paket/` baut das Debian-Paket, `macos/installer/` das DMG |
-| `assets/logo/` | Logo aus dem Baukasten der Basis: Turm, Weg und Rose mit der Salzsack-Plakette; neu erzeugen mit `sh assets/logo/erzeugen.sh` (macOS- und Windows-Symbol allein: `sh assets/logo/desktop-symbole.sh`; die Linux-Symbole rechnet `linux/paket/bauen.sh`) |
+| `assets/logo/` | Logo aus dem Baukasten der Basis: Turm, Weg und Rose mit der Salzsack-Plakette; Grund in der Gruppenfarbe Bewohner (Rot); neu erzeugen mit `sh assets/logo/erzeugen.sh [../rosenweg-basis]` (ruft `werkzeug/logo/app-symbole.sh` der Basis, alle Plattformen; die Linux-Symbole rechnet `linux/paket/bauen.sh`) |
 
 **Anmeldung:** Authentik-Client `rosenweg-apps`, Rücksprungadresse `ch.rosenweg4303.salz:/anmeldung` (in Authentik als „Strikt“ eingetragen).
 
