@@ -42,7 +42,7 @@ dependencies:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
       # fester Tag; neue Fassungen von rosenweg_basis kommen als PR (Workflow in rosenweg-basis)
-      ref: v0.5.2
+      ref: v0.6.2
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6

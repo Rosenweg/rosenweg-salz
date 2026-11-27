@@ -51,7 +51,7 @@ Rechnen und Erinnern macht der Server (Rosenweg-API `/api/salz`), die App bucht 
 
 **Updates:** Die App aktualisiert sich selbst (Updater aus `rosenweg_basis` ab 0.5.0): auf Android der Rosenweg Updater (täglich, Android fragt pro Installation), auf eigenen Linux-Rechnern, macOS und Windows eine Leiste „Neue Fassung … verfügbar“ mit *Aktualisieren* (Prüfsumme aus dem Katalog wird geprüft). Aus ist er nur auf geteilten Telefonen (Rosenweg Gerät) und auf Rosenweg-Stationen (os-stationen).
 
-Version 1.0.3 (Desktop-Layout: Buchen links, Lager rechts; Tastatur; `rosenweg_basis` v0.5.2 mit Android-Anmeldeschirm „QR-Code scannen“). Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
+Version 1.0.4 („Nächster Sack etwa am …“ je Lager als Schätzung, ohne genug Daten ein Hinweis statt Termin; Desktop-Layout: Buchen links, Lager rechts; Tastatur; `rosenweg_basis` v0.5.2 mit Android-Anmeldeschirm „QR-Code scannen“). Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
 
 ## Rechte und Gruppen
 

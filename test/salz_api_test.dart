@@ -80,10 +80,18 @@ void main() {
     final l = Lager.ausJson({...lagerJson, 'naechster_sack': '2026-12-03'});
     expect(l.naechsterSack, DateTime(2026, 12, 3));
     expect(l.naechsterSackText(heute: DateTime(2026, 11, 28, 18)), 'Nächster Sack etwa am Do, 3. Dez.');
-    expect(l.naechsterSackText(heute: DateTime(2026, 12, 2, 9)), 'Nächster Sack morgen (Do, 3. Dez.)');
-    expect(l.naechsterSackText(heute: DateTime(2026, 12, 3, 23)), 'Nächster Sack heute');
+    expect(l.naechsterSackText(heute: DateTime(2026, 12, 2, 9)), 'Nächster Sack etwa morgen (Do, 3. Dez.)');
+    expect(l.naechsterSackText(heute: DateTime(2026, 12, 3, 23)), 'Nächster Sack etwa heute');
     expect(l.naechsterSackText(heute: DateTime(2026, 12, 5)), 'Nächster Sack war etwa am Do, 3. Dez. fällig');
     expect(Lager.ausJson(lagerJson).naechsterSackText(), isNull);
+  });
+
+  test('Ohne Termin: Hinweis des Servers, sonst ein allgemeiner; mit Termin keiner', () {
+    final h = Lager.ausJson({...lagerJson, 'naechster_sack': null, 'naechster_sack_hinweis': 'Noch zu wenig Daten'});
+    expect(h.naechsterSackOhneTermin, 'Noch zu wenig Daten');
+    expect(Lager.ausJson(lagerJson).naechsterSackOhneTermin, startsWith('Nächster Sack: noch keine'));
+    expect(Lager.ausJson({...lagerJson, 'naechster_sack': '2026-12-03'}).naechsterSackOhneTermin, isNull);
+    expect(neuesLager(1, 'K', null, inBetrieb: false).naechsterSackOhneTermin, isNull);
   });
 
   test('Reichweite-Text', () {
