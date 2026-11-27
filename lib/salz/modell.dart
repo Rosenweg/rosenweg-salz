@@ -32,6 +32,7 @@ class Lager {
     required this.mindestSaecke,
     required this.meldungSeit,
     this.naechsterSack,
+    this.naechsterSackHinweis,
   });
 
   factory Lager.ausJson(Map<String, dynamic> j) => Lager(
@@ -50,6 +51,7 @@ class Lager {
         mindestSaecke: (j['mindest_saecke'] as num?)?.toInt() ?? 0,
         meldungSeit: _zeit(j['meldung_seit']),
         naechsterSack: _tag(j['naechster_sack']),
+        naechsterSackHinweis: j['naechster_sack_hinweis'] as String?,
       );
 
   final int id;
@@ -69,9 +71,13 @@ class Lager {
   final int mindestSaecke;
   final DateTime? meldungSeit;
 
-  /// Tag, an dem der naechste Sack faellig ist (Server: letzte Einfuellung +
-  /// kg / Verbrauch). null = zu wenig Daten.
+  /// Geschaetzter Tag, an dem in der Anlage wieder Platz fuer einen Sack ist
+  /// (Server: letzte Einfuellung + ein Sack / Verbrauch; mehrere Saecke auf
+  /// einmal zaehlen als eine Einfuellung). null = zu wenig Daten.
   final DateTime? naechsterSack;
+
+  /// Warum es (noch) keinen Termin gibt, vom Server; null mit Termin.
+  final String? naechsterSackHinweis;
 
   /// "Rosenweg 9" -> "9", "Kooperation" -> "K" (fuer die grossen Wahlknoepfe).
   String get kurz => haus?.toString() ?? name.substring(0, 1);
@@ -90,16 +96,23 @@ class Lager {
     return 'Reichweite folgt nach ein paar Einfüllungen';
   }
 
-  /// "Nächster Sack etwa am Do, 3. Dez." / "heute" / "morgen" / "war … fällig"; null ohne Termin.
+  /// "Nächster Sack etwa am Do, 3. Dez." / "etwa heute" / "etwa morgen" / "war … fällig"; null ohne Termin.
+  /// Der Tag ist eine Schaetzung, darum immer "etwa".
   String? naechsterSackText({DateTime? heute}) {
     final n = naechsterSack;
     if (n == null) return null;
     final h = heute ?? DateTime.now();
     final diff = DateTime(n.year, n.month, n.day).difference(DateTime(h.year, h.month, h.day)).inHours ~/ 24;
     final t = '${_wochentage[n.weekday - 1]}, ${n.day}. ${_monate[n.month - 1]}';
-    if (diff == 0) return 'Nächster Sack heute';
-    if (diff == 1) return 'Nächster Sack morgen ($t)';
+    if (diff == 0) return 'Nächster Sack etwa heute';
+    if (diff == 1) return 'Nächster Sack etwa morgen ($t)';
     return diff < 0 ? 'Nächster Sack war etwa am $t fällig' : 'Nächster Sack etwa am $t';
+  }
+
+  /// Hinweis statt Termin, wenn es noch keine Schaetzung gibt (nur fuer Lager in Betrieb).
+  String? get naechsterSackOhneTermin {
+    if (!inBetrieb || naechsterSack != null) return null;
+    return naechsterSackHinweis ?? 'Nächster Sack: noch keine Schätzung';
   }
 }
 

@@ -240,6 +240,15 @@ class LagerKarte extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(child: Text(n, style: t.bodyLarge)),
                     ]),
+                  )
+                else if (lager.naechsterSackOhneTermin case final h?)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Icon(Icons.info_outline, size: 18, color: t.bodySmall?.color),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(h, style: t.bodyMedium?.copyWith(color: t.bodySmall?.color))),
+                    ]),
                   ),
                 if (lager.meldungSeit != null)
                   Padding(
