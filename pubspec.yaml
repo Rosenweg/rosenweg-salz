@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.13.4
@@ -41,8 +41,8 @@ dependencies:
   rosenweg_basis:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
-      # Anmeldeschirm wie auf Android (rosenweg-basis#10); nach dem Merge auf den Tag v0.3.0 umstellen
-      ref: v0.3.0
+      # fester Tag; neue Fassungen von rosenweg_basis kommen als PR (Workflow in rosenweg-basis)
+      ref: v0.5.2
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6

@@ -465,11 +465,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: v0.3.0
-      resolved-ref: "18ea1f509cc096e6b1adfee556b908a0aef89fb7"
+      ref: v0.5.2
+      resolved-ref: cf7ac6bf63a390a778346d827f44735ccaf67a4e
       url: "https://github.com/Rosenweg/rosenweg-basis.git"
     source: git
-    version: "0.3.0"
+    version: "0.5.2"
   shared_preferences:
     dependency: "direct main"
     description:
