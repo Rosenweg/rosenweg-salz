@@ -79,7 +79,7 @@ class _StartSeiteState extends State<StartSeite> {
   }
 
   Future<void> _abmelden() async {
-    if (await frage(context, 'Abmelden?', 'Danach braucht es wieder die Anmeldung mit dem Rosenweg-Konto.', ja: 'Abmelden')) {
+    if (await frage(context, 'Abmelden?', 'Danach braucht es wieder die Anmeldung (Karte, Rosenweg-Konto oder QR-Code).', ja: 'Abmelden')) {
       await widget.umgebung.abmelden();
     }
   }
@@ -94,9 +94,17 @@ class _StartSeiteState extends State<StartSeite> {
         title: const Text('Rosenweg Salz'),
         actions: [
           PopupMenuButton<String>(
-            onSelected: (w) => w == 'ab' ? _abmelden() : zeigeUeber(context, salzApp),
+            onSelected: (w) => switch (w) {
+              'ab' => _abmelden(),
+              'anmeldung' => zeigeAnmeldung(context, widget.umgebung.sitzung!),
+              _ => zeigeUeber(context, salzApp),
+            },
             itemBuilder: (_) => [
-              PopupMenuItem(enabled: false, child: Text(widget.ich.name ?? 'Angemeldet')),
+              // Anmeldung: angemeldet als, womit (Konto, Karte, QR, Handy), Abmelden
+              if (widget.umgebung.sitzung != null)
+                PopupMenuItem(value: 'anmeldung', child: Text('Anmeldung: ${widget.ich.name ?? 'angemeldet'}'))
+              else
+                PopupMenuItem(enabled: false, child: Text(widget.ich.name ?? 'Angemeldet')),
               if (widget.umgebung.darfAbmelden) const PopupMenuItem(value: 'ab', child: Text('Abmelden')),
               const PopupMenuItem(value: 'ueber', child: Text('Über Rosenweg Salz')),
             ],

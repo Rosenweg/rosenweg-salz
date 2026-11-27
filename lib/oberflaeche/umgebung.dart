@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:rosenweg_basis/rosenweg_basis.dart' show RosenwegSitzung;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../salz/salz_api.dart';
@@ -11,7 +12,7 @@ import '../salz/salz_api.dart';
 typedef Scannen = Future<String?> Function(BuildContext context);
 
 class Umgebung {
-  Umgebung({required this.quelle, required this.scannen, required this.abmelden, this.darfAbmelden = true, Merker? merker})
+  Umgebung({required this.quelle, required this.scannen, required this.abmelden, this.darfAbmelden = true, this.sitzung, Merker? merker})
       : merker = merker ?? Merker();
   final SalzQuelle quelle;
   final Scannen scannen;
@@ -20,6 +21,10 @@ class Umgebung {
   /// Rosenweg Geraet an und ab, dann gibt es den Menuepunkt nicht.
   final Future<void> Function() abmelden;
   final bool darfAbmelden;
+
+  /// Fuer die Seite "Anmeldung" (rosenweg_basis: angemeldet als, womit,
+  /// Abmelden - immer der echte Stand). null in Tests.
+  final RosenwegSitzung? sitzung;
 
   /// Geteiltes Telefon (Rosenweg Geraet meldet an und ab): ohne angemeldete
   /// Person zeigt die App den Hinweis zur Karte — einen Anmeldeschirm gibt es
