@@ -155,17 +155,21 @@ void main() {
     expect(find.byKey(const Key('knopf-anlieferung')), findsOneWidget);
   });
 
-  testWidgets('Startseite zeigt den naechsten Sack, ohne Termin keine Zeile', (t) async {
+  testWidgets('Startseite zeigt den naechsten Sack, ohne Termin den Hinweis', (t) async {
     final in3 = DateTime.now().add(const Duration(days: 3));
     await starten(
       t,
       lager: [
         neuesLager(3, 'Rosenweg 9', 9, saecke: 20, wochen: 9, naechster: DateTime(in3.year, in3.month, in3.day)),
-        neuesLager(1, 'Rosenweg 2', 2, saecke: 4),
+        neuesLager(1, 'Rosenweg 2', 2, saecke: 4, hinweis: 'Noch zu wenig Daten für eine Schätzung'),
+        neuesLager(4, 'Rosenweg Kooperation', null, inBetrieb: false),
       ],
     );
     expect(find.textContaining('Nächster Sack etwa am'), findsOneWidget);
     expect(find.byIcon(Icons.event_outlined), findsOneWidget);
+    expect(find.text('Noch zu wenig Daten für eine Schätzung'), findsOneWidget);
+    // Lager ohne Buchung: kein Hinweis
+    expect(find.byIcon(Icons.info_outline), findsOneWidget);
   });
 
   group('Desktop (Fenster 1280 x 800)', () {
