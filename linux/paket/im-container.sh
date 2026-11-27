@@ -4,15 +4,20 @@
 # linux/paket/im-container.sh — das Paket im Bau-Container bauen
 # ============================================================================
 #   linux/paket/im-container.sh [knoten] [ct] [basis-ordner]
-#   linux/paket/im-container.sh root@100.64.2.22 141 ../rosenweg-basis   (Vorgabe)
+#   RW_BAU_KNOTEN=root@<knoten> linux/paket/im-container.sh                 (Knoten aus der Umgebung)
+#   linux/paket/im-container.sh root@<knoten> 141 ../rosenweg-basis
 #
-# Muster: rosenweg-profil und rosenweg-vm. Der Bau-Container (CT 141 auf pve3,
+#   Fuer den Proxmox-Knoten mit dem Bau-Container gibt es keine Vorgabe (oeffentl.
+#   Repo): als erstes Argument oder in RW_BAU_KNOTEN (z. B. in ~/.profile);
+#   der Container in RW_BAU_CT oder als zweites Argument (Vorgabe 141).
+#
+# Muster: rosenweg-profil und rosenweg-vm. Der Bau-Container (CT 141,
 # Debian 13) hat keinen Zugang zu GitHub; der Quellstand geht als Archiv ueber
 # den Knoten hinein ('pct push'), das .deb auf demselben Weg zurueck.
 #
 # Mitgeschickt wird der Arbeitsstand von rosenweg-salz, auch Ungespeichertes
 # (eigener Index, .gitignore gilt; im Paket steht dann '+geaendert'). Von
-# rosenweg-basis (privat, im Container nicht erreichbar) geht genau die
+# rosenweg-basis (im Container ist GitHub nicht erreichbar) geht genau die
 # Fassung mit, die pubspec.yaml nennt (git: ref: v0.2.0), aus dem
 # Nachbarordner — nicht dessen Arbeitsstand. Wer gegen den Arbeitsstand der
 # Basis bauen will: RW_BASIS_ARBEITSSTAND=1.
@@ -25,8 +30,9 @@
 # shellcheck disable=SC2029
 set -euo pipefail
 
-KNOTEN="${1:-root@100.64.2.22}"
-CTID="${2:-141}"
+KNOTEN="${1:-${RW_BAU_KNOTEN:-}}"
+CTID="${2:-${RW_BAU_CT:-141}}"
+[ -n "$KNOTEN" ] || { echo "FEHLER: Knoten fehlt - als erstes Argument (root@<knoten>) oder in RW_BAU_KNOTEN." >&2; exit 2; }
 HIER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WURZEL="$(cd "$HIER/../.." && pwd)"
 BASIS="$(cd "${3:-$WURZEL/../rosenweg-basis}" && pwd)"

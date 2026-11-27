@@ -137,7 +137,7 @@ dependency_overrides:
 
 ## CI und Release
 
-`.github/workflows/android.yml` läuft auf dem eigenen Runner (Gruppe `rosenweg-privat`, wie rosenweg-vm). Alle Läufe (Android, Linux, macOS, Windows) holen die Basis über `.github/actions/basis-zugang` (gleiches Secret).
+Alle Läufe laufen auf GitHub-Runnern (`ubuntu-latest`, das `.deb` im Container `debian:13`; `windows-latest`, `macos-latest`), nie auf eigenen. Die Basis ist öffentlich, `pub get` holt sie ohne Token. Signiert wird nur bei Push auf `main` oder Tag `v*`; ein PR baut immer mit dem Debug-Schlüssel.
 
 | Auslöser | Ergebnis |
 |---|---|
@@ -145,15 +145,15 @@ dependency_overrides:
 | Tag `v*` (gleich `version` in `pubspec.yaml`, z. B. `v1.0.0`) | zusätzlich GitHub-Release mit der APK |
 | Tag mit Rosenweg-Signatur | APK geht auch an **[rosenweg4303.ch/apps](https://www.rosenweg4303.ch/apps)** (GitHub-OIDC, kein Geheimnis; Weg in Rosenweg/Website, `pbx/README.md`) |
 
-Ein Debug-signierter Bau bleibt nur im GitHub-Release. Flutter, JDK und Android-Kommandozeilenwerkzeuge liegen als feste Versionen mit Prüfsumme in einem Cache im Benutzerverzeichnis des Runners.
+Ein Debug-signierter Bau bleibt nur im GitHub-Release. Flutter, JDK und Android-Kommandozeilenwerkzeuge kommen als feste Versionen mit Prüfsumme, zwischen Läufen im `actions/cache`.
 
 ### Desktop und iOS
 
 | Plattform | Bau | Ergebnis | an /apps |
 |---|---|---|---|
-| Linux (Debian 13, amd64) | `.github/workflows/linux.yml` (eigener Runner, bei jedem Push/PR); lokal im Bau-Container: `linux/paket/im-container.sh` | `rosenweg-salz_<version>-<bau>_amd64.deb` | bei Tag `v*` (linux-deb) |
-| macOS | `.github/workflows/macos.yml` (nur Tag/von Hand); lokal `macos/installer/bauen.sh` | `Rosenweg-Salz-<version>.dmg` | bei Tag `v*` |
-| Windows | `.github/workflows/windows.yml` (nur Tag/von Hand), Inno Setup | `Rosenweg-Salz-<version>-Setup.exe` | bei Tag `v*` |
+| Linux (Debian 13, amd64) | `.github/workflows/linux.yml` (bei jedem Push/PR); lokal im Bau-Container: `linux/paket/im-container.sh` | `rosenweg-salz_<version>-<bau>_amd64.deb` | bei Tag `v*` (linux-deb) |
+| macOS | `.github/workflows/macos.yml` (Tag, von Hand; öffentlich auch jeder Push/PR); lokal `macos/installer/bauen.sh` | `Rosenweg-Salz-<version>.dmg` | bei Tag `v*` |
+| Windows | `.github/workflows/windows.yml` (Tag, von Hand; öffentlich auch jeder Push/PR), Inno Setup | `Rosenweg-Salz-<version>-Setup.exe` | bei Tag `v*` |
 | iOS | `.github/workflows/macos.yml`, Job `ios`: Bau ohne Signatur | unsigniertes `.ipa` als Artefakt | nein (braucht Apple Developer Program) |
 
 **Linux-Paket** (Muster rosenweg-profil / rosenweg-vm): das Flutter-Bündel
@@ -167,8 +167,8 @@ der Baunummer als Revision (`1.0.0+1` → `1.0.0-1`): für ein neues Paket die
 Baunummer erhöhen.
 
 `linux/paket/im-container.sh` schickt den Arbeitsstand und die Basis in der
-Fassung aus `pubspec.yaml` (Tag aus `../rosenweg-basis`) in CT 141 auf pve3 und
-holt das .deb nach `linux/paket/out/` zurück. Läuft dort schon ein Flutter-Bau,
+Fassung aus `pubspec.yaml` (Tag aus `../rosenweg-basis`) in den Bau-Container (CT 141; Knoten als
+Argument oder in `RW_BAU_KNOTEN`) und holt das .deb nach `linux/paket/out/` zurück. Läuft dort schon ein Flutter-Bau,
 bricht es ab.
 
 ## Konfiguration
@@ -177,9 +177,7 @@ GitHub-Secrets (Settings → Secrets and variables → Actions), nur die Namen:
 
 | Secret | Wozu |
 |---|---|
-| `BASIS_TOKEN` | fein granulierter Token, nur Rosenweg/rosenweg-basis, *Contents: Read-only* – damit `pub get` die private Basis holen kann |
-| `BASIS_DEPLOY_KEY` | Alternative zu `BASIS_TOKEN`: privater SSH-Schlüssel eines Deploy-Keys auf rosenweg-basis (sobald Deploy-Keys in der Organisation erlaubt sind) |
-| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Rosenweg-Signierschlüssel (optional). Fehlen sie, ist die APK debug-signiert und heisst `…-debug-signiert.apk`. |
+| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Rosenweg-Signierschlüssel (optional, nur bei Push auf `main`/Tag `v*` benutzt). Fehlen sie, ist die APK debug-signiert und heisst `…-debug-signiert.apk`. |
 
 Auf dem Server (Rosenweg/Website): `SALZ_GRUPPEN` (wer in allen Lagern buchen darf), `SALZ_MELDUNG_AN` (Empfänger der Meldungen, Vorgabe Technik).
 

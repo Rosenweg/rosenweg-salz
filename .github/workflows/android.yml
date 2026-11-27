@@ -1,18 +1,16 @@
-# Android-Bau auf dem eigenen Runner (CT 140 auf pve2, Debian, Gruppe
-# rosenweg-privat) nach dem Muster von rosenweg-vm (.github/workflows/linux.yml).
+# Android-Bau auf einem GitHub-Runner (ubuntu-latest), nie auf einem eigenen
+# Runner (oeffentliches Repo).
 #
-# Der Runner hat kein allgemeines sudo, nur ein eingeschraenktes apt-get.
-# Darum: Flutter, JDK und Android-Kommandozeilenwerkzeuge als feste Versionen
-# mit Pruefsumme in einen Cache im Benutzerverzeichnis — nichts systemweit.
-# Plattform, Build-Tools und NDK laedt das Android-Gradle-Plugin beim ersten
-# Bau selbst in dasselbe SDK (Lizenzen sind akzeptiert, sdkmanager prueft die
-# Pakete). Der Cache bleibt zwischen Laeufen liegen.
+# Flutter, JDK und Android-Kommandozeilenwerkzeuge als feste Versionen mit
+# Pruefsumme (nicht das vorinstallierte SDK des Runners), zwischen Laeufen im
+# actions/cache. Plattform, Build-Tools und NDK laedt das Android-Gradle-Plugin
+# beim ersten Bau selbst in dasselbe SDK (Lizenzen sind akzeptiert, sdkmanager
+# prueft die Pakete).
 #
-# Die Basis (Rosenweg/rosenweg-basis) ist privat: pub holt sie mit dem Secret
-# BASIS_TOKEN (fein granulierter Token, nur dieses Repo, Contents read-only)
-# oder BASIS_DEPLOY_KEY (Deploy-Key, lesen). Signiert wird mit dem
-# Rosenweg-Schluessel, wenn ANDROID_KEYSTORE_BASE64 & Co. gesetzt sind, sonst
-# mit dem Debug-Schluessel (Datei heisst dann ...-debug-signiert.apk).
+# Die Basis (Rosenweg/rosenweg-basis) ist oeffentlich: pub holt sie ohne
+# Token. Signiert wird mit dem Rosenweg-Schluessel nur bei Push auf main oder
+# Tag v* und wenn ANDROID_KEYSTORE_BASE64 & Co. gesetzt sind, sonst (immer bei
+# pull_request) mit dem Debug-Schluessel (Datei: ...-debug-signiert.apk).
 name: Android
 
 on:
@@ -39,28 +37,25 @@ env:
   # neue "android"-CLI, --licenses tut dort nichts (keine Lizenzen, kein SDK).
   ANDROID_CMDLINE_TOOLS: "13114758"
   ANDROID_CMDLINE_TOOLS_SHA256: 7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee
+  # Signieren nur bei Push auf main oder Tag v*, nie bei pull_request (dann
+  # Debug-Signatur bzw. unsigniert; die Secrets kommen gar nicht in den Job).
+  SIGNIEREN: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
 
 jobs:
   bauen:
-    runs-on:
-      group: rosenweg-privat
-      labels: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
-      - name: Systempakete
-        run: |
-          noetig="curl unzip xz-utils git openssh-client"
-          fehlt=""
-          for p in $noetig; do dpkg -s "$p" >/dev/null 2>&1 || fehlt="$fehlt $p"; done
-          if [ -n "$fehlt" ]; then
-            echo "Fehlende Pakete:$fehlt"
-            sudo -n apt-get update -qq
-            sudo -n apt-get install -y -qq --no-install-recommends $fehlt
-          fi
+      - name: Werkzeug-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/rosenweg-flutter-ci
+          key: android-${{ env.FLUTTER_SHA256 }}-${{ env.JDK_SHA256 }}-${{ env.ANDROID_CMDLINE_TOOLS_SHA256 }}-${{ hashFiles('pubspec.lock', 'android/**/*.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-${{ env.FLUTTER_SHA256 }}-${{ env.JDK_SHA256 }}-${{ env.ANDROID_CMDLINE_TOOLS_SHA256 }}-
 
-      - name: Flutter, JDK, Android-SDK (Cache im Benutzerverzeichnis)
+      - name: Flutter, JDK, Android-SDK (feste Versionen mit Pruefsumme)
         run: |
           set -euo pipefail
           C="$HOME/.cache/rosenweg-flutter-ci"; mkdir -p "$C"
@@ -103,12 +98,6 @@ jobs:
             echo "PUB_CACHE=$C/pub-cache"
           } >> "$GITHUB_ENV"
 
-      - name: Zugang zur Basis (privates Repo)
-        uses: ./.github/actions/basis-zugang
-        with:
-          token: ${{ secrets.BASIS_TOKEN }}
-          deploy-key: ${{ secrets.BASIS_DEPLOY_KEY }}
-
       - name: pubspec.lock ohne lokale Basis
         run: |
           if grep -q 'source: path' pubspec.lock; then
@@ -123,7 +112,8 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Signierschluessel (falls als Secret hinterlegt)
+      - name: Signierschluessel (nur Push auf main / Tag v*)
+        if: env.SIGNIEREN == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -137,9 +127,9 @@ jobs:
 
       - name: APK bauen
         env:
-          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ env.SIGNIEREN == 'true' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          SIGNING_KEY_ALIAS: ${{ env.SIGNIEREN == 'true' && secrets.ANDROID_KEY_ALIAS || '' }}
+          SIGNING_KEY_PASSWORD: ${{ env.SIGNIEREN == 'true' && secrets.ANDROID_KEY_PASSWORD || '' }}
           # rosenweg_basis android/build.gradle.kts holt commons-rosenweg aus GitHub
           # Packages; Maven dort verlangt auch fuer oeffentliche Pakete eine Anmeldung.
           GITHUB_TOKEN: ${{ github.token }}
@@ -163,7 +153,7 @@ jobs:
 
       - name: Schluessel entfernen
         if: always()
-        run: rm -f "$RUNNER_TEMP/rosenweg.jks" "$RUNNER_TEMP/basis_key" "$RUNNER_TEMP/known_hosts"
+        run: rm -f "$RUNNER_TEMP/rosenweg.jks"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -174,20 +164,12 @@ jobs:
   veroeffentlichen:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: bauen
-    runs-on:
-      group: rosenweg-privat
-      labels: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
       id-token: write    # OIDC-Token fuer /apps (kein Geheimnis)
     steps:
-      # Selbst gehosteter Runner: der Arbeitsordner bleibt zwischen Jobs liegen.
-      # Am 26.11.2026 (v1.0.0) lag noch das .deb des Linux-Laufs in ausgabe/,
-      # und der Android-Job lud es mit hoch. Darum vorher leeren.
-      - name: ausgabe/ leeren
-        run: rm -rf ausgabe
-
       - uses: actions/download-artifact@v4
         with:
           name: rosenweg-salz-android

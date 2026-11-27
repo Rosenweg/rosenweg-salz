@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   # Gemeinsame Basis der Rosenweg-Apps (Anmeldung rosenweg-apps, API-Client,
-  # Thema, Rahmen), feste Version aus dem privaten Repo. Lokal entwickeln mit
+  # Thema, Rahmen), feste Version aus dem oeffentlichen Repo. Lokal entwickeln mit
   # dem Nachbarordner ../rosenweg-basis: pubspec_overrides.yaml (nicht
   # eingecheckt, siehe README).
   rosenweg_basis:
