@@ -5,6 +5,7 @@ import 'package:rosenweg_basis/rosenweg_basis.dart';
 
 import '../salz/modell.dart';
 import '../salz/salz_api.dart';
+import 'scanner_seite.dart' show mitKamera;
 import 'umgebung.dart';
 
 class AblaufErgebnis {
@@ -68,7 +69,7 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
       Navigator.of(context).pop();
       return;
     }
-    setState(() => _fehler = e.toString());
+    setState(() => _fehler = fehlerText(e));
   }
 
   Future<void> _lagerGewaehlt(Lager l) async {
@@ -152,17 +153,21 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
     return Scaffold(
       appBar: AppBar(title: Text(titel)),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (_fehler != null)
-              Card(
-                key: const Key('fehler'),
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: Padding(padding: const EdgeInsets.all(16), child: Text(_fehler!, style: const TextStyle(fontSize: 17))),
-              ),
-            Expanded(child: _inhalt(context)),
-          ]),
+        // Am Desktop nicht ueber die ganze Fensterbreite.
+        child: RosenwegInhalt(
+          maxBreite: 640,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (_fehler != null)
+                Card(
+                  key: const Key('fehler'),
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(padding: const EdgeInsets.all(16), child: Text(_fehler!, style: const TextStyle(fontSize: 17))),
+                ),
+              Expanded(child: _inhalt(context)),
+            ]),
+          ),
         ),
       ),
     );
@@ -173,24 +178,35 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
     switch (_schritt) {
       case _Schritt.lager:
         final liste = [...widget.lager]..sort((a, b) => (a.id == _letztes ? 0 : 1).compareTo(b.id == _letztes ? 0 : 1));
-        return ListView(children: [
-          Text('Wo?', style: t.headlineSmall),
-          const SizedBox(height: 12),
-          for (final l in liste)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: FilledButton.tonal(
-                key: Key('lager-${l.id}'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(72), alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 20)),
-                onPressed: _arbeitet ? null : () => _lagerGewaehlt(l),
-                child: Row(children: [
-                  Expanded(child: Text(l.name, style: const TextStyle(fontSize: 22))),
-                  if (l.id == _letztes) const Text('zuletzt', style: TextStyle(fontSize: 14)),
-                ]),
+        // Desktop: Ziffer 1–9 waehlt das Lager (steht rechts am Knopf).
+        return CallbackShortcuts(
+          bindings: {
+            for (var i = 0; i < liste.length && i < 9; i++)
+              SingleActivator(LogicalKeyboardKey(LogicalKeyboardKey.digit1.keyId + i)): () {
+                if (!_arbeitet) _lagerGewaehlt(liste[i]);
+              },
+          },
+          child: ListView(children: [
+            Text('Wo?', style: t.headlineSmall),
+            const SizedBox(height: 12),
+            for (final (i, l) in liste.indexed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: FilledButton.tonal(
+                  key: Key('lager-${l.id}'),
+                  autofocus: !mitKamera && i == 0,
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(72), alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  onPressed: _arbeitet ? null : () => _lagerGewaehlt(l),
+                  child: Row(children: [
+                    Expanded(child: Text(l.name, style: const TextStyle(fontSize: 22))),
+                    if (l.id == _letztes) const Text('zuletzt', style: TextStyle(fontSize: 14)),
+                    if (!mitKamera && i < 9) ...[const SizedBox(width: 16), _Taste('${i + 1}')],
+                  ]),
+                ),
               ),
-            ),
-        ]);
+          ]),
+        );
       case _Schritt.scannen:
       case _Schritt.buchen:
         return Center(
@@ -232,29 +248,70 @@ class _BuchenAblaufState extends State<BuchenAblauf> {
           onPressed: _arbeitet ? null : () => setState(() => _anzahl = (_anzahl + d).clamp(1, 500)),
           icon: Icon(i),
         );
-    return ListView(children: [
-      Text('${_gewaehlt!.name} · ${_sorte!.bezeichnung} (${_sorte!.gewichtText})', style: t.titleMedium),
-      const SizedBox(height: 24),
-      Text('Wie viele Säcke?', style: t.headlineSmall, textAlign: TextAlign.center),
-      const SizedBox(height: 16),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        knopf(Icons.remove, -1, 'weniger'),
-        SizedBox(width: 140, child: Text('$_anzahl', key: const Key('anzahl'), textAlign: TextAlign.center, style: t.displayMedium)),
-        knopf(Icons.add, 1, 'mehr'),
-      ]),
-      const SizedBox(height: 16),
-      Wrap(alignment: WrapAlignment.center, spacing: 12, children: [
-        for (final n in const [5, 10, 20, 40])
-          ChoiceChip(label: Text('$n', style: const TextStyle(fontSize: 18)), selected: _anzahl == n, onSelected: (_) => setState(() => _anzahl = n)),
-      ]),
-      const SizedBox(height: 32),
-      FilledButton(
-        key: const Key('buchen'),
-        onPressed: _arbeitet ? null : () => _buchen(_anzahl),
-        child: Text('$_anzahl ${_anzahl == 1 ? 'Sack' : 'Säcke'} buchen'),
+    void aendern(int d) {
+      if (!_arbeitet) setState(() => _anzahl = (_anzahl + d).clamp(1, 500));
+    }
+
+    void buchen() {
+      if (!_arbeitet) _buchen(_anzahl);
+    }
+
+    // Desktop: Enter bucht, Pfeil hoch/runter (oder +/-) aendert die Anzahl.
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): buchen,
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): buchen,
+        const SingleActivator(LogicalKeyboardKey.arrowUp): () => aendern(1),
+        const SingleActivator(LogicalKeyboardKey.arrowDown): () => aendern(-1),
+        const SingleActivator(LogicalKeyboardKey.numpadAdd): () => aendern(1),
+        const SingleActivator(LogicalKeyboardKey.numpadSubtract): () => aendern(-1),
+      },
+      child: Focus(
+        autofocus: true,
+        child: ListView(children: [
+          Text('${_gewaehlt!.name} · ${_sorte!.bezeichnung} (${_sorte!.gewichtText})', style: t.titleMedium),
+          const SizedBox(height: 24),
+          Text('Wie viele Säcke?', style: t.headlineSmall, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            knopf(Icons.remove, -1, 'weniger'),
+            SizedBox(width: 140, child: Text('$_anzahl', key: const Key('anzahl'), textAlign: TextAlign.center, style: t.displayMedium)),
+            knopf(Icons.add, 1, 'mehr'),
+          ]),
+          const SizedBox(height: 16),
+          Wrap(alignment: WrapAlignment.center, spacing: 12, children: [
+            for (final n in const [5, 10, 20, 40])
+              ChoiceChip(label: Text('$n', style: const TextStyle(fontSize: 18)), selected: _anzahl == n, onSelected: (_) => setState(() => _anzahl = n)),
+          ]),
+          const SizedBox(height: 32),
+          FilledButton(
+            key: const Key('buchen'),
+            onPressed: _arbeitet ? null : () => _buchen(_anzahl),
+            child: Text('$_anzahl ${_anzahl == 1 ? 'Sack' : 'Säcke'} buchen'),
+          ),
+          if (!mitKamera)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text('Enter bucht · Pfeil hoch/runter ändert die Anzahl',
+                  textAlign: TextAlign.center, style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
+        ]),
       ),
-    ]);
+    );
   }
+}
+
+/// Tastenkappe neben dem Lager (Desktop).
+class _Taste extends StatelessWidget {
+  const _Taste(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+            border: Border.all(color: Theme.of(context).colorScheme.outline), borderRadius: BorderRadius.circular(6)),
+        child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      );
 }
 
 /// Unbekannter Barcode: einmal Sorte und Gewicht erfassen.
@@ -294,6 +351,8 @@ class _SorteErfassenState extends State<SorteErfassen> {
       TextField(
         key: const Key('sorte-name'),
         controller: _name,
+        autofocus: !mitKamera,
+        textInputAction: TextInputAction.next,
         textCapitalization: TextCapitalization.sentences,
         style: const TextStyle(fontSize: 20),
         decoration: const InputDecoration(labelText: 'Was steht auf dem Sack?', hintText: 'z. B. Regeneriersalz Tabletten', border: OutlineInputBorder()),
@@ -311,6 +370,7 @@ class _SorteErfassenState extends State<SorteErfassen> {
             controller: _kg,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _los(),
             decoration: const InputDecoration(suffixText: 'kg', isDense: true),
           ),
         ),
