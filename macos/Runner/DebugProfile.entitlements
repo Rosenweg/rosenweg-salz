@@ -11,5 +11,8 @@
 	<!-- Ruecksprung der Anmeldung auf localhost (nur 127.0.0.1, rosenweg_basis). -->
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<!-- Anmeldeschirm: Rosenweg-Karte ueber USB-NFC-Leser (PC/SC, rosenweg_basis) -->
+	<key>com.apple.security.smartcard</key>
+	<true/>
 </dict>
 </plist>
