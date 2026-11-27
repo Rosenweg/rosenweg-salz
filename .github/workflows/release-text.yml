@@ -7,7 +7,7 @@
 # Workflow laeuft nach jedem dieser Laeufe (und von Hand fuer einen Tag) und
 # schreibt in den Text des Release einen Abschnitt mit Dateien und fehlenden
 # Plattformen samt Grund. Der uebrige Text bleibt, wie er ist.
-# Eigener Runner ([self-hosted, rosenweg]); dort gibt es kein gh.
+# GitHub-Runner (ubuntu-latest), REST-API ueber github-script.
 name: Release-Text
 
 on:
@@ -25,16 +25,18 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write   # Text des Release
-  actions: read     # Laeufe der Plattform-Workflows
+  contents: read
 
 jobs:
   text:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v'))
-    runs-on: [self-hosted, rosenweg]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write   # Text des Release
+      actions: read     # Laeufe der Plattform-Workflows
     steps:
       - uses: actions/github-script@v7
         env:
@@ -72,7 +74,7 @@ jobs:
               if (!l) grund = 'nicht gestartet (von Hand: Workflow mit dem Tag starten)';
               else if (l.status !== 'completed') grund = `läuft noch ([Lauf](${l.html_url}))`;
               else if (l.conclusion === 'success') grund = `Lauf ohne Datei ([Lauf](${l.html_url}))`;
-              else grund = `Lauf ${l.conclusion === 'failure' ? 'fehlgeschlagen (z. B. GitHub-Ausgabenlimit)' : l.conclusion}; nachholen: im [Lauf](${l.html_url}) „Re-run failed jobs“`;
+              else grund = `Lauf ${l.conclusion === 'failure' ? 'fehlgeschlagen' : l.conclusion}; nachholen: im [Lauf](${l.html_url}) „Re-run failed jobs“`;
               fehlt.push(`- **${p.titel}**: ${grund}`);
             }
             const ANF = '<!-- rw-plattformen -->', END = '<!-- /rw-plattformen -->';

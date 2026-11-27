@@ -40,8 +40,8 @@ oder bei einer neuen Basis-Version den Tag in `pubspec.yaml` erhöhen,
 
 ## Bau auf GitHub
 
-`.github/workflows/android.yml` läuft auf dem eigenen Runner (Gruppe
-`rosenweg-privat`, wie rosenweg-vm): bei jedem Push auf `main` und jedem PR
+`.github/workflows/android.yml` läuft auf einem GitHub-Runner
+(`ubuntu-latest`, nie auf einem eigenen): bei jedem Push auf `main` und jedem PR
 `flutter analyze`, `flutter test` und eine Release-APK. Die APK hängt als
 Artefakt am Lauf (Actions → Lauf → Artifacts). Bei einem Tag `v*` (gleich der
 `version` in `pubspec.yaml`, z. B. `v1.0.0`) entsteht zusätzlich ein
@@ -51,13 +51,14 @@ Mit dem Rosenweg-Signierschlüssel geht die APK dabei auch an
 Rosenweg/Website, `pbx/README.md`). Ein Debug-Bau bleibt nur im GitHub-Release.
 
 Flutter, JDK und Android-Kommandozeilenwerkzeuge kommen als feste Versionen
-mit Prüfsumme in einen Cache im Benutzerverzeichnis des Runners.
+mit Prüfsumme, zwischen Läufen im `actions/cache`. Die Basis ist öffentlich,
+`pub get` holt sie ohne Token. Signiert wird nur bei Push auf `main` oder Tag
+`v*`, ein PR baut immer mit dem Debug-Schlüssel.
 
 Secrets (Settings → Secrets and variables → Actions):
 
 | Secret | Wozu |
 |---|---|
-| `BASIS_TOKEN` | Fein granulierter Token, nur Rosenweg/rosenweg-basis, *Contents: Read-only* — damit `pub get` die private Basis holen kann. Alternative: `BASIS_DEPLOY_KEY` (privater SSH-Schlüssel eines Deploy-Keys auf rosenweg-basis, sobald Deploy-Keys in der Organisation erlaubt sind). |
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | Rosenweg-Signierschlüssel (optional). Fehlen sie, ist die APK mit dem Debug-Schlüssel signiert und heisst `…-debug-signiert.apk`. |
 
 ## Geteilte Rosenweg-Telefone

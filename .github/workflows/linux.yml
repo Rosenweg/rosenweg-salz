@@ -1,11 +1,10 @@
-# Linux-Bau (Debian-Paket fuer die Stationen von Rosenweg OS) auf dem eigenen
-# Runner (CT 140 auf pve2, Debian 13, Gruppe rosenweg-privat). Muster:
-# rosenweg-vm .github/workflows/linux.yml.
+# Linux-Bau (Debian-Paket fuer die Stationen von Rosenweg OS) auf einem
+# GitHub-Runner (ubuntu-latest) im Container debian:13, nie auf einem eigenen
+# Runner (oeffentliches Repo). Muster: rosenweg-vm .github/workflows/linux.yml.
 #
-# Der Runner hat kein allgemeines sudo, nur ein eingeschraenktes apt-get.
-# Darum: Systempakete (GTK-Header, libsecret) ueber apt-get, Flutter als feste
-# Version mit Pruefsumme (linux/paket/werkzeuge.env) in einen Cache im
-# Benutzerverzeichnis. Das .deb baut derselbe Weg wie im Bau-Container
+# Systempakete (GTK-Header, libsecret) ueber apt-get, Flutter als feste
+# Version mit Pruefsumme (linux/paket/werkzeuge.env), zwischen Laeufen im
+# actions/cache. Das .deb baut derselbe Weg wie im Bau-Container
 # (linux/paket/bauen.sh --nur-paket aus dem Buendel dieses Laufs).
 #
 # Bei einem Tag v* (= version in pubspec.yaml): .deb ins GitHub-Release und
@@ -29,27 +28,30 @@ permissions:
 
 jobs:
   bauen:
-    runs-on:
-      group: rosenweg-privat
-      labels: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
+    # Debian 13 wie die Stationen (dpkg-shlibdeps, lintian)
+    container: debian:13
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-
+      # vor checkout: mit git holt checkout das Repo samt .git (Stand im Paket)
       - name: Systempakete
         run: |
-          noetig="clang cmake ninja-build pkg-config xz-utils curl unzip git openssh-client \
-                  libgtk-3-dev liblzma-dev libstdc++-14-dev libsecret-1-dev libjsoncpp-dev \
-                  dpkg-dev binutils patchelf librsvg2-bin file lintian"
-          fehlt=""
-          for p in $noetig; do dpkg -s "$p" >/dev/null 2>&1 || fehlt="$fehlt $p"; done
-          if [ -n "$fehlt" ]; then
-            echo "Fehlende Pakete:$fehlt"
-            sudo -n apt-get update -qq
-            sudo -n apt-get install -y -qq --no-install-recommends $fehlt
-          fi
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            ca-certificates clang cmake ninja-build pkg-config xz-utils curl unzip git zstd \
+            libgtk-3-dev liblzma-dev libstdc++-14-dev libsecret-1-dev libjsoncpp-dev \
+            dpkg-dev binutils patchelf librsvg2-bin file lintian >/dev/null
 
-      - name: Flutter (Cache im Benutzerverzeichnis)
+      - uses: actions/checkout@v4
+
+      - name: Flutter-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/rosenweg-flutter-ci
+          key: flutter-linux-${{ hashFiles('linux/paket/werkzeuge.env', '.github/workflows/linux.yml') }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: flutter-linux-${{ hashFiles('linux/paket/werkzeuge.env', '.github/workflows/linux.yml') }}-
+
+      - name: Flutter (feste Version mit Pruefsumme)
         run: |
           set -euo pipefail
           . linux/paket/werkzeuge.env
@@ -59,14 +61,9 @@ jobs:
             echo "$FLUTTER_SHA256  $C/flutter.txz" | sha256sum -c -
             mkdir -p "$C/flutter-$FLUTTER_VERSION" && tar -xJf "$C/flutter.txz" -C "$C/flutter-$FLUTTER_VERSION" --strip-components=1 && rm "$C/flutter.txz"
           fi
+          git config --global --add safe.directory "$C/flutter-$FLUTTER_VERSION"
           echo "$C/flutter-$FLUTTER_VERSION/bin" >> "$GITHUB_PATH"
           echo "PUB_CACHE=$C/pub-cache" >> "$GITHUB_ENV"
-
-      - name: Zugang zur Basis (privates Repo)
-        uses: ./.github/actions/basis-zugang
-        with:
-          token: ${{ secrets.BASIS_TOKEN }}
-          deploy-key: ${{ secrets.BASIS_DEPLOY_KEY }}
 
       - name: Flutter pruefen und bauen
         run: |
@@ -88,10 +85,6 @@ jobs:
           mkdir -p ausgabe
           cp linux/paket/out/*.deb ausgabe/
 
-      - name: Schluessel entfernen
-        if: always()
-        run: rm -f "$RUNNER_TEMP/basis_key" "$RUNNER_TEMP/known_hosts"
-
       - uses: actions/upload-artifact@v4
         with:
           name: rosenweg-salz-linux
@@ -101,27 +94,18 @@ jobs:
   veroeffentlichen:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: bauen
-    runs-on:
-      group: rosenweg-privat
-      labels: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
       id-token: write    # OIDC-Token fuer /apps (kein Geheimnis)
     steps:
-      # Selbst gehosteter Runner: der Arbeitsordner bleibt zwischen Jobs liegen.
-      # Am 26.11.2026 (v1.0.0) lag noch das .deb des Linux-Laufs in ausgabe/,
-      # und der Android-Job lud es mit hoch. Darum vorher leeren.
-      - name: ausgabe/ leeren
-        run: rm -rf ausgabe
-
       - uses: actions/download-artifact@v4
         with:
           name: rosenweg-salz-linux
           path: ausgabe
 
-      # Ohne gh: auf dem selbst gehosteten Runner gibt es kein gh (v1.0.0 scheiterte
-      # daran, 'gh: command not found'). Derselbe Weg wie android.yml.
+      # Ueber github-script (REST-API), derselbe Weg wie android.yml.
       - name: Release
         uses: actions/github-script@v7
         with:
