@@ -97,6 +97,8 @@ jobs:
             echo "GRADLE_OPTS=-Dorg.gradle.daemon=false"
             echo "PUB_CACHE=$C/pub-cache"
           } >> "$GITHUB_ENV"
+          # Git-Abhaengigkeiten (rosenweg_basis) nie aus dem Cache: ein alter pub-cache/git loeste sie ohne Abhaengigkeiten auf ("Unable to satisfy pubspec.yaml using pubspec.lock", 27.11.2026)
+          rm -rf "$C/pub-cache/git"
 
       - name: pubspec.lock ohne lokale Basis
         run: |
