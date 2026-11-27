@@ -465,7 +465,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v0.5.2"
+      ref: v0.5.2
       resolved-ref: cf7ac6bf63a390a778346d827f44735ccaf67a4e
       url: "https://github.com/Rosenweg/rosenweg-basis.git"
     source: git
