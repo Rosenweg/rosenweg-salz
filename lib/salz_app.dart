@@ -12,4 +12,6 @@ const salzApp = RosenwegApp(
   logo: AssetImage('assets/logo/rosenweg-salz-512.png'),
   // Anmeldeschirm in der Gruppenfarbe (rosenweg_basis 0.6.1), wie das Logo
   gruppe: RosenwegGruppe.bewohner,
+  // Farbe nach freigeschalteter Funktion (rosenweg-basis docs/gruppenfarbe.md): Technik/Praesident: alle Lager, neue Sorten erfassen
+  farbGruppen: {RosenwegGruppe.technik},
 );

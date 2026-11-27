@@ -137,7 +137,10 @@ class _StartSeiteState extends State<StartSeite> {
       child: Focus(
         autofocus: breit,
         child: RosenwegGeruest(
-          logo: Image.asset('assets/logo/rosenweg-salz-klein.png'),
+          logo: widget.umgebung.sitzung == null
+              ? Image.asset('assets/logo/rosenweg-salz-klein.png')
+              // Logo in der Gruppenfarbe der Person, wechselt live (rosenweg-basis docs/gruppenfarbe.md)
+              : FarbLogo(sitzung: widget.umgebung.sitzung!, klein: true),
           titel: const Text('Rosenweg Salz'),
           maxBreite: null,
           aktionen: [

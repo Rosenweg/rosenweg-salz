@@ -42,7 +42,8 @@ dependencies:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
       # fester Tag; neue Fassungen von rosenweg_basis kommen als PR (Workflow in rosenweg-basis)
-      ref: v0.7.1
+      # Gruppenfarbe (rosenweg-basis PR #36): Zweig, bis der Integrator die Version vergibt
+      ref: feat/gruppenfarbe-person
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6
@@ -70,6 +71,8 @@ flutter:
   assets:
     - assets/logo/rosenweg-salz-512.png
     - assets/logo/rosenweg-salz-klein.png
+    - assets/logo/rosenweg-salz-technik-512.png
+    - assets/logo/rosenweg-salz-technik-klein.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
