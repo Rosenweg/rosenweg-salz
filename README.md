@@ -51,7 +51,7 @@ Rechnen und Erinnern macht der Server (Rosenweg-API `/api/salz`), die App bucht 
 
 **Updates:** Die App aktualisiert sich selbst (Updater aus `rosenweg_basis` ab 0.5.0): auf Android der Rosenweg Updater (täglich, Android fragt pro Installation), auf eigenen Linux-Rechnern, macOS und Windows eine Leiste „Neue Fassung … verfügbar“ mit *Aktualisieren* (Prüfsumme aus dem Katalog wird geprüft). Aus ist er nur auf geteilten Telefonen (Rosenweg Gerät) und auf Rosenweg-Stationen (os-stationen).
 
-Version 1.0.2 (`rosenweg_basis` v0.5.2: Android-Anmeldeschirm mit „QR-Code scannen“). Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
+Version 1.0.3 (Desktop-Layout: Buchen links, Lager rechts; Tastatur; `rosenweg_basis` v0.5.2 mit Android-Anmeldeschirm „QR-Code scannen“). Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
 
 ## Rechte und Gruppen
 
@@ -80,6 +80,7 @@ Wer nur in einem Lager buchen darf, bekommt keine Lagerwahl und kommt direkt zum
 | Unbekannter Barcode | Die Technik erfasst ihn einmal mit Bezeichnung und Gewicht je Sack. Wer das nicht darf, sieht „Technik fragen“ und kann einen anderen Sack scannen. |
 | Rückgängig | gleich nach der Buchung auf der Startseite |
 | Barcode am Desktop (Linux, macOS, Windows) | „scannen“ öffnet eine Eingabeseite (`BarcodeEingabeSeite`), das Feld hat sofort den Fokus. Ein USB-Barcode-Scanner (meldet sich als Tastatur, schickt Ziffern und Enter) erfasst den Sack mit einem Scan; ohne Scanner die Nummer unter dem Strichcode eintippen und Enter oder „Weiter“. |
+| Desktop-Fenster | ab 840 px Breite Buchen links, Lager rechts als Kacheln; Buchungsschritte mittig mit fester Breite. Tastatur: Ziffer 1–9 wählt das Lager, Pfeil hoch/runter ändert die Anzahl, Enter bucht, F5 lädt neu. Schmaler als 840 px wie auf dem Handy; kleinstes Fenster 400×560. Gerüst aus rosenweg_basis (`RosenwegGeruest`, `RosenwegSpalten`). |
 
 Die Startseite zeigt je Lager Ort, Bestand, Reichweite und „Nächster Sack etwa am …“ (wenn der Server einen Termin liefert).
 
