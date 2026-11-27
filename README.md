@@ -49,7 +49,7 @@ Rechnen und Erinnern macht der Server (Rosenweg-API `/api/salz`), die App bucht 
 | Windows | ja, Setup mit Inno Setup (bei Tag `v*` an /apps) |
 | iOS | Bau ohne Signatur in der CI; nicht verteilt (braucht Apple Developer Program) |
 
-**Updates:** Die App aktualisiert sich selbst (Updater aus `rosenweg_basis` 0.4.0): auf Android der Rosenweg Updater (täglich, Android fragt pro Installation), auf eigenen Linux-Rechnern, macOS und Windows eine Leiste „Neue Fassung … verfügbar“ mit *Aktualisieren* (Prüfsumme aus dem Katalog wird geprüft). Aus ist er nur auf geteilten Telefonen (Rosenweg Gerät) und auf Rosenweg-Stationen (os-stationen).
+**Updates:** Die App aktualisiert sich selbst (Updater aus `rosenweg_basis` 0.5.0): auf Android der Rosenweg Updater (täglich, Android fragt pro Installation), auf eigenen Linux-Rechnern, macOS und Windows eine Leiste „Neue Fassung … verfügbar“ mit *Aktualisieren* (Prüfsumme aus dem Katalog wird geprüft). Aus ist er nur auf geteilten Telefonen (Rosenweg Gerät) und auf Rosenweg-Stationen (os-stationen).
 
 Version 1.0.2. Kamera-Scan gibt es nur auf Telefonen; am Desktop wird der Barcode eingetippt oder mit einem USB-Scanner erfasst (siehe [Bedienung](#bedienung)).
 

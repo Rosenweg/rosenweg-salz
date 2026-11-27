@@ -41,8 +41,8 @@ dependencies:
   rosenweg_basis:
     git:
       url: https://github.com/Rosenweg/rosenweg-basis.git
-      # v0.3.0 + Updater (rosenweg-basis#11); nach dem Merge auf den Tag v0.4.0 umstellen
-      ref: cf5c27ad14dc956b692428a4ac628a852b408d11
+      # v0.4.0 + Updater (rosenweg-basis#11); nach dem Merge auf den Tag v0.5.0 umstellen
+      ref: 1759f1d86cfdbcf3e18eda01db1ea34aa8ed3974
   mobile_scanner: ^7.5.0
   http: ^1.6.0
   shared_preferences: ^2.5.6
