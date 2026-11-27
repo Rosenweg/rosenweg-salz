@@ -64,6 +64,8 @@ jobs:
           git config --global --add safe.directory "$C/flutter-$FLUTTER_VERSION"
           echo "$C/flutter-$FLUTTER_VERSION/bin" >> "$GITHUB_PATH"
           echo "PUB_CACHE=$C/pub-cache" >> "$GITHUB_ENV"
+          # Git-Abhaengigkeiten (rosenweg_basis) nie aus dem Cache: ein alter pub-cache/git loeste sie ohne Abhaengigkeiten auf ("Unable to satisfy pubspec.yaml using pubspec.lock", 27.11.2026)
+          rm -rf "$C/pub-cache/git"
 
       - name: Flutter pruefen und bauen
         run: |
