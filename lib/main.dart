@@ -15,6 +15,7 @@ void main() => rosenwegStarten(
           scannen: scannerOeffnen,
           abmelden: sitzung.abmelden,
           darfAbmelden: !sitzung.geteiltesTelefon,
+          sitzung: sitzung,
         ),
       ),
     );
