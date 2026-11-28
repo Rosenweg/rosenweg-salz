@@ -10,5 +10,8 @@
 #   sh assets/logo/erzeugen.sh [pfad/zu/rosenweg-basis]
 set -eu
 BASIS="${1:-../rosenweg-basis}"
-sh "$BASIS/werkzeug/logo/app-symbole.sh" . rosenweg-salz "Rosenweg Salz" \
+# Weitere Gruppenfarben (lib: farbGruppen): Logos, Android-Aliasse, iOS alternate icons
+FARBEN="technik"
+FARBEN="$FARBEN" sh "$BASIS/werkzeug/logo/app-symbole.sh" . rosenweg-salz "Rosenweg Salz" \
   "$BASIS/werkzeug/logo/zeichen/salz.svg" bewohner
+python3 "$BASIS/werkzeug/logo/farben-einbauen.py" . --standard bewohner --farben $FARBEN >/dev/null
